@@ -1,0 +1,5 @@
+{
+    "cmd": "test.bat",
+    "sh": false,
+    "cwd": "{PROJECT_PATH}"
+}
