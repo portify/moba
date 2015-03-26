@@ -57,7 +57,7 @@ end
 
 function GS.pop(...)
 	assert(#stack > 1, "No more states to pop!")
-	local pre, to = stack[#stack], stack[#stack-1] 
+	local pre, to = stack[#stack], stack[#stack-1]
 	stack[#stack] = nil
 	;(pre.leave or __NULL__)(pre)
 	return (to.resume or __NULL__)(to, pre, ...)
@@ -69,7 +69,7 @@ end
 
 local all_callbacks = {
 	'draw', 'errhand', 'focus', 'keypressed', 'keyreleased', 'mousefocus',
-	'mousepressed', 'mousereleased', 'quit', 'resize', 'textinput',
+	'mousepressed', 'mousereleased', 'mousemoved', 'quit', 'resize', 'textinput',
 	'threaderror', 'update', 'visible', 'gamepadaxis', 'gamepadpressed',
 	'gamepadreleased', 'joystickadded', 'joystickaxis', 'joystickhat',
 	'joystickpressed', 'joystickreleased', 'joystickremoved'

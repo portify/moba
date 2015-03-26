@@ -80,9 +80,12 @@ function player:update(dt)
 end
 
 function player:update_camera(camera, dt, paused)
-    if self.camera_lock then
+    if not self.spawn_init then
+        self.spawn_init = true
         camera:lookAt(self.px, self.py)
-    elseif not paused then
+    elseif self.camera_lock then
+        camera:lookAt(self.px, self.py)
+    elseif not paused and not love.mouse.getRelativeMode() then
         local mx, my = love.mouse.getPosition()
         local speed = 750
 

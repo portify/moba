@@ -4,9 +4,10 @@ local camera = require "lib/hump/camera"
 
 local game = {}
 
-function game:enter(previous, host, server)
+function game:enter(previous, address, host, server)
     print("Connection ready")
 
+    self.address = address
     self.host = host
     self.server = server
 
@@ -17,10 +18,15 @@ function game:enter(previous, host, server)
     self.camera = camera.new()
 
     love.mouse.setGrabbed(true)
+    love.graphics.setBackgroundColor(0, 0, 0)
 end
 
 function game:resume()
     love.mouse.setGrabbed(true)
+
+    if love.mouse.getRelativeMode() and not love.mouse.isDown("m") then
+        love.mouse.setRelativeMode(false)
+    end
 end
 
 function game:leave()
@@ -155,15 +161,52 @@ function game:draw()
     self.camera:detach()
 end
 
+function game:mousemoved(x, y, dx, dy)
+    if love.mouse.getRelativeMode() then
+        self.camera:move(dx, dy)
+    end
+end
+
+function game:mousepressed(x, y, button)
+    local locked = false
+
+    if control ~= nil then
+        locked = control.camera_lock
+    end
+
+    if not locked and button == "m" then
+        if not love.mouse.getRelativeMode() then
+            self.mouse_pre_relative = {love.mouse.getPosition()}
+        end
+
+        love.mouse.setRelativeMode(true)
+    end
+end
+
+function game:mousereleased(x, y, button)
+    if button == "m" then
+        love.mouse.setRelativeMode(false)
+        love.mouse.setPosition(unpack(self.mouse_pre_relative))
+    end
+end
+
 function game:keypressed(key)
-    if key == "escape" then
-        gamestate.push(states.pause)
-    elseif key == "y" then
+    if key == "y" then
         local control = self:get_control()
 
         if control ~= nil then
             control.camera_lock = not control.camera_lock
+
+            if control.camera_lock then
+                love.mouse.setRelativeMode(false)
+            end
         end
+    end
+end
+
+function game:keyreleased(key)
+    if key == "escape" then
+        gamestate.push(states.pause)
     end
 end
 

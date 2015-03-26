@@ -6,6 +6,7 @@ function connecting:enter(from, address)
     local in_bandwidth = 0
     local out_bandwidth = 0
 
+    self.address = address
     self.host = enet.host_create(nil, 1, CHANNEL_COUNT,
         in_bandwidth, out_bandwidth)
 
@@ -16,6 +17,7 @@ function connecting:enter(from, address)
     self.server = self.host:connect(address)
     self.status = "Connecting to server"
 
+    love.graphics.setBackgroundColor(60, 70, 70)
     love.graphics.setFont(love.graphics.newFont(28))
 end
 
@@ -39,7 +41,7 @@ function connecting:update(dt)
             local data = mp.unpack(event.data)
 
             if data.e == EVENT.HELLO then
-                gamestate.switch(states.game, self.host, self.server)
+                gamestate.switch(states.game, self.address, self.host, self.server)
                 return
             else
                 self.server:disconnect_later(DISCONNECT.INVALID_PACKET)
@@ -53,10 +55,6 @@ function connecting:update(dt)
         elseif event.type == "disconnect" then
             local reason = DISCONNECT(event.data)
             reason = reason and " (" .. reason .. ")" or ""
-
-            if QUIT_ON_DISCONNECT then
-                love.event.quit()
-            end
 
             self.failed = true
             self.status = "Error:\nConnection failed" .. reason
@@ -72,12 +70,22 @@ function connecting:draw()
     local sw, sh = love.graphics.getDimensions()
 
     if self.failed ~= nil then
-        love.graphics.setColor(127, 31, 0, 255)
+        love.graphics.setColor(127, 97, 0) -- 127 31 0
     else
-        love.graphics.setColor(127, 127, 127, 255)
+        love.graphics.setColor(127, 127, 127)
     end
 
     love.graphics.printf(self.status, 0, sh / 4, sw, "center")
+end
+
+function connecting:keypressed()
+    self.server:reset()
+
+    if args.local_loop then
+        love.event.quit()
+    else
+        gamestate.switch(states.menu)
+    end
 end
 
 return connecting
