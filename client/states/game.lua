@@ -94,6 +94,29 @@ function game:update(dt)
         event = self.host:service()
     end
 
+    if love.mouse.isDown("r") then
+        local x = love.mouse.getX()
+        local y = love.mouse.getY()
+
+        self.move_to_timer = self.move_to_timer - dt
+
+        if self.move_to_timer <= 0 and x ~= self.move_to_x and y ~= self.move_to_y then
+            self.server:send(mp.pack({
+                e = EVENT.MOVE_TO,
+                x = x,
+                y = y
+            }))
+
+            self.move_to_timer = 0.05
+            self.move_to_x = x
+            self.move_to_y = y
+        end
+    else
+        self.move_to_timer = 0
+        self.move_to_x = nil
+        self.move_to_y = nil
+    end
+
     for id, ent in pairs(self.entities) do
         ent:update(dt)
     end
@@ -109,16 +132,6 @@ function game:draw()
     love.graphics.setFont(stats_font)
     love.graphics.printf("latency: " .. self.server:round_trip_time() .. "ms\nfps: " .. love.timer.getFPS(),
         8, 8, love.graphics.getWidth() - 16)
-end
-
-function game:mousepressed(x, y, button)
-    if button == "r" then
-        self.server:send(mp.pack({
-            e = EVENT.MOVE_TO,
-            x = x,
-            y = y
-        }))
-    end
 end
 
 return game

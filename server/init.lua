@@ -38,7 +38,7 @@ function love.load()
         next_id = 0,
         host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
             config.bandwidth_in, config.bandwidth_out),
-        world = world:new()
+        world = world:new("maps/map.txt")
     }
 
     if server.host ~= nil then

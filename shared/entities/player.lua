@@ -8,7 +8,7 @@ function player:new()
     new.py = 32
     new.vx = 1
     new.vy = 0
-    new.speed = 130
+    new.speed = 170
 
     if is_client then
         new._debug_font = get_resource(love.graphics.newFont, 8)
@@ -77,31 +77,31 @@ function player:update(dt)
 end
 
 function player:draw()
-    if self.path ~= nil then
-        love.graphics.setColor(255, 255, 255)
-
-        local i = #self.path
-
-        while i > 1 do
-            local a = self.path[i]
-            local b = self.path[i - 1]
-
-            love.graphics.line(a[1], a[2], b[1], b[2])
-
-            i = i - 1
-        end
-    end
-
+    -- if self.path ~= nil then
+    --     love.graphics.setColor(255, 255, 255)
+    --
+    --     local i = #self.path
+    --
+    --     while i > 1 do
+    --         local a = self.path[i]
+    --         local b = self.path[i - 1]
+    --
+    --         love.graphics.line(a[1], a[2], b[1], b[2])
+    --
+    --         i = i - 1
+    --     end
+    -- end
+    --
     -- local plane = self:get_world_plane()
     --
     -- if plane ~= nil then
-    --     love.graphics.setColor(100, 200, 100)
+    --     love.graphics.setColor(100, 200, 100, 50)
     --     plane:draw("fill")
     -- end
-
-    love.graphics.setColor(255, 0, 255)
-    love.graphics.setLineWidth(4)
-    love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
+    --
+    -- love.graphics.setColor(255, 255, 255)
+    -- love.graphics.setLineWidth(2)
+    -- love.graphics.line(self.px, self.py, self.px + self.vx * 40, self.py + self.vy * 40)
 
     love.graphics.setColor(80, 80, 80)
     love.graphics.circle("fill", self.px, self.py, 8)

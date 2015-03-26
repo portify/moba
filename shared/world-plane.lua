@@ -1,27 +1,19 @@
 local plane = {}
 plane.__index = plane
 
-function plane:new(...)
+function plane:new(a, b, c)
     return setmetatable({
-        points = {...},
+        points = {a, b, c},
         planes = {}
     }, self)
 end
 
 function plane:center()
-    local x = 0
-    local y = 0
-
-    for i, point in ipairs(self.points) do
-        x = x + point[1]
-        y = y + point[2]
-    end
-
-    return x / #self.points, y / #self.points
+    return (self.points[1][1] + self.points[2][1] + self.points[3][1]) / 3,
+           (self.points[1][2] + self.points[2][2] + self.points[3][2]) / 3
 end
 
 function plane:contains(x, y)
-    -- only works for tris atm
     local p0 = self.points[1]
     local p1 = self.points[2]
     local p2 = self.points[3]
@@ -70,17 +62,20 @@ function plane:find_path(goal)
         table.remove(opened, index)
 
         if current == goal then
-            local path = {current}
+            local path = {}
 
             while prev[current] ~= nil do
                 current = prev[current]
-                table.insert(path, current)
+
+                if prev[current] ~= nil then
+                    table.insert(path, current)
+                end
             end
 
             return path
         end
 
-        for i=1, #current.points do
+        for i=1, 3 do
             local other = current.planes[i]
 
             if other ~= nil then
@@ -99,14 +94,10 @@ function plane:find_path(goal)
 end
 
 function plane:draw(mode)
-    local points = {}
-
-    for j, point in ipairs(self.points) do
-        table.insert(points, point[1])
-        table.insert(points, point[2])
-    end
-
-    love.graphics.polygon(mode, points)
+    love.graphics.polygon(mode,
+        self.points[1][1], self.points[1][2],
+        self.points[2][1], self.points[2][2],
+        self.points[3][1], self.points[3][2])
 end
 
 return plane

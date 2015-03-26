@@ -14,7 +14,7 @@ function client:disconnect(data)
 end
 
 function client:send(data, channel, mode)
-    print(self.peer:index() .. " <-- " .. tostring(EVENT(data.e)))
+    -- print(self.peer:index() .. " <-- " .. tostring(EVENT(data.e)))
     self.peer:send(mp.pack(data), channel, mode)
 end
 
@@ -59,7 +59,7 @@ function client:disconnected(data)
 end
 
 function client:received(data)
-    print(self.peer:index() .. " --> " .. tostring(EVENT(data.e)))
+    -- print(self.peer:index() .. " --> " .. tostring(EVENT(data.e)))
 
     if data.e == EVENT.MOVE_TO then
         if self.player ~= nil then
@@ -86,11 +86,6 @@ function client:received(data)
                 if a == nil then
                     path = {
                         {b:center()},
-                        {self.player.px, self.player.py}
-                    }
-                elseif a == b then
-                    path = {
-                        {data.x, data.y},
                         {self.player.px, self.player.py}
                     }
                 else
