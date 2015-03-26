@@ -102,6 +102,7 @@ function world:draw()
     love.graphics.setLineWidth(1)
 
     if self.image ~= nil then
+        love.graphics.setColor(255, 255, 255)
         love.graphics.draw(self.image, 0, 0)
     end
 

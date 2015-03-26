@@ -11,6 +11,7 @@ function player:new()
     new.vx = 1
     new.vy = 0
     new.speed = 170
+    new.health = 100
 
     if is_client then
         new.camera_lock = false
@@ -24,7 +25,8 @@ function player:pack()
     return {
         self.px, self.py,
         self.vx, self.vy,
-        self.path, self.path_progress
+        self.path, self.path_progress,
+        self.health
     }
 end
 
@@ -35,6 +37,17 @@ function player:unpack(t)
     self.vy = t[4]
     self.path = t[5]
     self.path_progress = t[6]
+    self.health = t[7]
+end
+
+function player:damage(hp)
+    self.health = self.health - hp
+
+    if self.health <= 0 and not is_client then
+        self.client.player = nil
+        delay(1, function() self.client:spawn() end)
+        remove_entity(self)
+    end
 end
 
 function player:get_world_plane()
@@ -121,7 +134,7 @@ function player:draw()
     local height = 12
     local spacing = 16
 
-    local hp = 0.4
+    local hp = self.health / 100
 
     love.graphics.setColor(127, 127, 127)
     love.graphics.rectangle("fill",

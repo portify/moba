@@ -34,6 +34,7 @@ function love.load()
     server = {
         clients = {},
         entities = {},
+        schedules = {},
         time = 0,
         next_id = 0,
         host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
@@ -96,6 +97,19 @@ function love.update(dt)
     for id, ent in pairs(server.entities) do
         ent:update(dt)
     end
+
+    local i = 1
+
+    while i <= #server.schedules do
+        local sched = server.schedules[i]
+
+        if server.time >= sched[1] then
+            sched[2]()
+            table.remove(server.schedules, i)
+        else
+            i = i + 1
+        end
+    end
 end
 
 function add_entity(ent)
@@ -123,7 +137,7 @@ function remove_entity(ent)
     ent:removed()
 
     for i, cl in ipairs(server.clients) do
-        cl:send({e = EVENT.ENTITY_REMOVE, i = ent.__id})
+        cl:send({e = EVENT.ENTITY_REMOVE, ent.__id})
     end
 
     server.entities[ent.__id] = nil
@@ -137,5 +151,24 @@ function update_entity(ent)
             e = EVENT.ENTITY_UPDATE,
             [ent.__id] = ent:pack()
         })
+    end
+end
+
+function schedule(when, f)
+    local s = {when, f}
+    table.insert(server.schedules, s)
+    return s
+end
+
+function delay(duration, f)
+    return schedule(server.time + duration, f)
+end
+
+function cancel(s)
+    for i, sched in ipairs(server.schedules) do
+        if sched == s then
+            table.remove(server.schedules, i)
+            break
+        end
     end
 end

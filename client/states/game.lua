@@ -212,6 +212,11 @@ function game:keypressed(key)
         if self.camera_locked then
             love.mouse.setRelativeMode(false)
         end
+    elseif key == "q" then
+        self.server:send(mp.pack{
+            e = EVENT.USE_ABILITY,
+            i = 1
+        })
     end
 end
 

@@ -56,7 +56,18 @@ function client:connected()
         self:send(data)
     end
 
-    self.player = add_entity(entities.player:new())
+    self:spawn()
+end
+
+function client:spawn()
+    if self.player ~= nil then
+        self.player = remove_entity(self.player)
+    end
+
+    self.player = entities.player:new()
+    self.player.client = self
+
+    add_entity(self.player)
     self:set_control(self.player)
 end
 
@@ -121,6 +132,20 @@ function client:received(data)
 
                 update_entity(self.player)
             end
+        end
+    elseif data.e == EVENT.USE_ABILITY then
+        if self.player == nil then
+            return
+        end
+
+        if data.i == 1 then
+            local speed = 300
+            local p = entities.projectile:new()
+            p.px = self.player.px + self.player.vx * 4
+            p.py = self.player.py + self.player.vy * 4
+            p.vx = self.player.vx * speed
+            p.vy = self.player.vy * speed
+            add_entity(p)
         end
     else
         -- self:disconnect(DISCONNECT.INVALID_PACKET)
