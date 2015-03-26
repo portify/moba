@@ -16,6 +16,7 @@ function game:enter(previous, address, host, server)
 
     self.control = setmetatable({}, {__mode = "kv"})
     self.camera = camera.new()
+    self.camera_locked = false
 
     love.mouse.setGrabbed(true)
     love.graphics.setBackgroundColor(0, 0, 0)
@@ -97,6 +98,7 @@ function game:update(dt)
                 end
             elseif data.e == EVENT.ENTITY_CONTROL then
                 self.control.value = self.entities[data.i]
+                self.control.value:update_camera(self.camera)
             elseif data.e == EVENT.WORLD then
                 self.world:unpack(data.d)
             end
@@ -145,8 +147,23 @@ function game:update(dt)
 
     local control = self:get_control()
 
-    if control ~= nil then
-        control:update_camera(self.camera, dt, paused)
+    if control ~= nil and self.camera_locked then
+        control:update_camera(self.camera, dt)
+    elseif not paused and not love.mouse.getRelativeMode() then
+        local mx, my = love.mouse.getPosition()
+        local speed = 750
+
+        if mx <= 0 then
+            self.camera:move(-speed * dt, 0)
+        elseif mx >= love.graphics.getWidth() - 1 then
+            self.camera:move(speed * dt, 0)
+        end
+
+        if my <= 0 then
+            self.camera:move(0, -speed * dt)
+        elseif my >= love.graphics.getHeight() - 1 then
+            self.camera:move(0, speed * dt)
+        end
     end
 end
 
@@ -168,13 +185,7 @@ function game:mousemoved(x, y, dx, dy)
 end
 
 function game:mousepressed(x, y, button)
-    local locked = false
-
-    if control ~= nil then
-        locked = control.camera_lock
-    end
-
-    if not locked and button == "m" then
+    if not self.camera_locked and button == "m" then
         if not love.mouse.getRelativeMode() then
             self.mouse_pre_relative = {love.mouse.getPosition()}
         end
@@ -184,7 +195,7 @@ function game:mousepressed(x, y, button)
 end
 
 function game:mousereleased(x, y, button)
-    if button == "m" then
+    if button == "m" and love.mouse.getRelativeMode() then
         love.mouse.setRelativeMode(false)
         love.mouse.setPosition(unpack(self.mouse_pre_relative))
     end
@@ -192,14 +203,10 @@ end
 
 function game:keypressed(key)
     if key == "y" then
-        local control = self:get_control()
+        self.camera_locked = not self.camera_locked
 
-        if control ~= nil then
-            control.camera_lock = not control.camera_lock
-
-            if control.camera_lock then
-                love.mouse.setRelativeMode(false)
-            end
+        if self.camera_locked then
+            love.mouse.setRelativeMode(false)
         end
     end
 end

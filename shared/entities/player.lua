@@ -80,29 +80,7 @@ function player:update(dt)
 end
 
 function player:update_camera(camera, dt, paused)
-    if not self.spawn_init then
-        self.spawn_init = true
-        camera:lookAt(self.px, self.py)
-    elseif self.camera_lock then
-        camera:lookAt(self.px, self.py)
-    elseif not paused and not love.mouse.getRelativeMode() then
-        local mx, my = love.mouse.getPosition()
-        local speed = 750
-
-        if mx <= 0 then
-            camera:move(-speed * dt, 0)
-        elseif mx >= love.graphics.getWidth() - 1 then
-            camera:move(speed * dt, 0)
-        end
-
-        if my <= 0 then
-            camera:move(0, -speed * dt)
-        elseif my >= love.graphics.getHeight() - 1 then
-            camera:move(0, speed * dt)
-        end
-    end
-
-    camera:zoomTo(1)
+    camera:lookAt(self.px, self.py)
     camera:rotateTo(0)
 end
 
