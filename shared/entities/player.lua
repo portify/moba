@@ -4,13 +4,16 @@ setmetatable(player, entity)
 
 function player:new()
     new = setmetatable({}, self)
-    new.px = 32
-    new.py = 32
+    local sx, sy = self:get_world_instance().mesh[1]:center()
+
+    new.px = sx
+    new.py = sy
     new.vx = 1
     new.vy = 0
     new.speed = 170
 
     if is_client then
+        new.camera_lock = false
         new._debug_font = get_resource(love.graphics.newFont, 8)
     end
 
@@ -74,6 +77,30 @@ function player:update(dt)
             end
         end
     end
+end
+
+function player:update_camera(camera, dt, paused)
+    if self.camera_lock then
+        camera:lookAt(self.px, self.py)
+    elseif not paused then
+        local mx, my = love.mouse.getPosition()
+        local speed = 750
+
+        if mx <= 0 then
+            camera:move(-speed * dt, 0)
+        elseif mx >= love.graphics.getWidth() - 1 then
+            camera:move(speed * dt, 0)
+        end
+
+        if my <= 0 then
+            camera:move(0, -speed * dt)
+        elseif my >= love.graphics.getHeight() - 1 then
+            camera:move(0, speed * dt)
+        end
+    end
+
+    camera:zoomTo(1)
+    camera:rotateTo(0)
 end
 
 function player:draw()

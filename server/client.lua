@@ -2,7 +2,10 @@ local client = {}
 client.__index = client
 
 function client:new(peer)
-    return setmetatable({peer = peer}, self)
+    return setmetatable({
+        peer = peer,
+        control = setmetatable({}, {__mode = "kv"})
+    }, self)
 end
 
 function client:reset()
@@ -16,6 +19,16 @@ end
 function client:send(data, channel, mode)
     -- print(self.peer:index() .. " <-- " .. tostring(EVENT(data.e)))
     self.peer:send(mp.pack(data), channel, mode)
+end
+
+function client:get_control()
+    return self.control.value
+end
+
+function client:set_control(ent)
+    assert(ent.__id ~= nil, "ent has no id")
+    self.control.value = ent
+    self:send{e=EVENT.ENTITY_CONTROL, i=ent.__id}
 end
 
 function client:connected()
@@ -44,6 +57,7 @@ function client:connected()
     end
 
     self.player = add_entity(entities.player:new())
+    self:set_control(self.player)
 end
 
 function client:disconnected(data)

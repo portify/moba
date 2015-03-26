@@ -1,7 +1,8 @@
 local world = require "shared/world"
 
+local camera = require "lib/hump/camera"
+
 local game = {}
-local stats_font
 
 function game:enter(previous, host, server)
     print("Connection ready")
@@ -12,9 +13,14 @@ function game:enter(previous, host, server)
     self.entities = {}
     self.world = world:new()
 
-    if stats_font == nil then
-        stats_font = get_resource(love.graphics.newFont, 12)
-    end
+    self.control = setmetatable({}, {__mode = "kv"})
+    self.camera = camera.new()
+
+    love.mouse.setGrabbed(true)
+end
+
+function game:resume()
+    love.mouse.setGrabbed(true)
 end
 
 function game:leave()
@@ -23,6 +29,11 @@ function game:leave()
 
     self.entities = nil
     self.world = nil
+
+    self.control = nil
+    self.camera = nil
+
+    love.mouse.setGrabbed(false)
 end
 
 function game:quit()
@@ -39,7 +50,12 @@ function game:disconnect()
     self.server:disconnect_later(DISCONNECT.EXITING)
 end
 
+function game:get_control()
+    return self.control.value
+end
+
 function game:update(dt)
+    local paused = gamestate.current() ~= self
     local event = self.host:service()
 
     while event do
@@ -73,6 +89,8 @@ function game:update(dt)
                 for id, packed in pairs(data) do
                     self.entities[id]:unpack(packed)
                 end
+            elseif data.e == EVENT.ENTITY_CONTROL then
+                self.control.value = self.entities[data.i]
             elseif data.e == EVENT.WORLD then
                 self.world:unpack(data.d)
             end
@@ -94,10 +112,8 @@ function game:update(dt)
         event = self.host:service()
     end
 
-    if love.mouse.isDown("r") then
-        local x = love.mouse.getX()
-        local y = love.mouse.getY()
-
+    if love.mouse.isDown("r") and not paused then
+        local x, y = self.camera:mousepos()
         self.move_to_timer = self.move_to_timer - dt
 
         if self.move_to_timer <= 0 and x ~= self.move_to_x and y ~= self.move_to_y then
@@ -120,18 +136,35 @@ function game:update(dt)
     for id, ent in pairs(self.entities) do
         ent:update(dt)
     end
+
+    local control = self:get_control()
+
+    if control ~= nil then
+        control:update_camera(self.camera, dt, paused)
+    end
 end
 
 function game:draw()
+    self.camera:attach()
     self.world:draw()
 
     for id, ent in pairs(self.entities) do
         ent:draw()
     end
 
-    love.graphics.setFont(stats_font)
-    love.graphics.printf("latency: " .. self.server:round_trip_time() .. "ms\nfps: " .. love.timer.getFPS(),
-        8, 8, love.graphics.getWidth() - 16)
+    self.camera:detach()
+end
+
+function game:keypressed(key)
+    if key == "escape" then
+        gamestate.push(states.pause)
+    elseif key == "y" then
+        local control = self:get_control()
+
+        if control ~= nil then
+            control.camera_lock = not control.camera_lock
+        end
+    end
 end
 
 return game

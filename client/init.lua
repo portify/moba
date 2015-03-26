@@ -7,7 +7,8 @@ require "shared/entities"
 states = {
     menu = require "client/states/menu",
     connecting = require "client/states/connecting",
-    game = require "client/states/game"
+    game = require "client/states/game",
+    pause = require "client/states/pause"
 }
 
 function love.load()

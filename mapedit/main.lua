@@ -1,5 +1,12 @@
-local vertices, polygons
+local vertices, polygons, image
 local mode, target
+
+local dragging, drag_start_view, drag_start_user
+local view, zoom
+
+local function translate_mouse(x, y)
+    return x / zoom - view[1], y / zoom - view[2]
+end
 
 local function line_on_circle(a, b, c, r)
     local d = {
@@ -46,9 +53,26 @@ local function point_in_triangle(x, y, p0, p1, p2)
     return s > 0 and t > 0 and (s + t) < 2 * A * sign
 end
 
-function love.load()
+local function set_image(filename)
+    image = {
+        filename = filename,
+        instance = love.graphics.newImage(filename)
+    }
+end
+
+local function clear_map()
+    view = {0, 0}
+    zoom = 1
+
     vertices = setmetatable({}, {__mode = "v"})
     polygons = {}
+
+    image = nil
+end
+
+local function reset_map()
+    clear_map()
+    set_image("maps/map.jpg")
 
     local a = {64, 64}
     local b = {128, 64}
@@ -61,8 +85,61 @@ function love.load()
     table.insert(polygons, {a, b, c})
 end
 
+local function save_map(filename)
+    data = ""
+
+    if image ~= nil then
+        data = data .. "i " .. image.filename .. "\n"
+    end
+
+    local vert_id = {}
+
+    for i, vert in ipairs(vertices) do
+        vert_id[vert] = i
+        data = data .. "v " .. vert[1] .. " " .. vert[2] .. "\n"
+    end
+
+    for i, poly in ipairs(polygons) do
+        local a = vert_id[poly[1]]
+        local b = vert_id[poly[2]]
+        local c = vert_id[poly[3]]
+        data = data .. "p " .. a .. " " .. b .. " " .. c .. "\n"
+    end
+
+    love.filesystem.write(filename, data)
+end
+
+local function load_map(filename)
+    clear_map()
+    local verts = {}
+
+    for line in love.filesystem.lines(filename) do
+        if line:sub(1, 2) == "v " then
+            x, y = line:match("(.*) (.*)", 3)
+            local vert = {tonumber(x), tonumber(y)}
+            table.insert(vertices, vert)
+            table.insert(verts, vert)
+        elseif line:sub(1, 2) == "p " then
+            a, b, c = line:match("(.*) (.*) (.*)", 3)
+            table.insert(polygons, {
+                verts[tonumber(a)],
+                verts[tonumber(b)],
+                verts[tonumber(c)]
+            })
+        elseif line:sub(1, 2) == "i " then
+            set_image(line:sub(3))
+        end
+    end
+
+    collectgarbage()
+end
+
+function love.load()
+    reset_map()
+end
+
 local function update_target()
-    local pos = {love.mouse.getPosition()}
+    local pos = {translate_mouse(love.mouse.getPosition())}
 
     for i, vert in ipairs(vertices) do
         if math.sqrt((vert[1]-pos[1])^2 + (vert[2]-pos[2])^2) <= 4 then
@@ -92,8 +169,7 @@ local function update_target()
 end
 
 function love.update(dt)
-    local x = love.mouse.getX()
-    local y = love.mouse.getY()
+    local x, y = translate_mouse(love.mouse.getPosition())
 
     if mode == "move-vertex" then
         target.vert[1] = x
@@ -112,32 +188,33 @@ function love.update(dt)
     else
         update_target()
     end
+
+    if dragging then
+        view[1] = drag_start_view[1] + (x - drag_start_user[1])
+        view[2] = drag_start_view[2] + (y - drag_start_user[2])
+    end
 end
 
 function love.keypressed(key)
     if key == "s" then
-        data = ""
-
-        local vert_id = {}
-
-        for i, vert in ipairs(vertices) do
-            vert_id[vert] = i
-            data = data .. "v " .. vert[1] .. " " .. vert[2] .. "\n"
-        end
-
-        for i, poly in ipairs(polygons) do
-            local a = vert_id[poly[1]]
-            local b = vert_id[poly[2]]
-            local c = vert_id[poly[3]]
-            data = data .. "p " .. a .. " " .. b .. " " .. c .. "\n"
-        end
-
-        love.filesystem.write("map.txt", data)
+        save_map("maps/map.txt")
+    elseif key == "l" then
+        load_map("maps/map.txt")
     end
 end
 
 function love.mousepressed(x, y, button)
-    if button == "l" and mode == nil then
+    x, y = translate_mouse(x, y)
+
+    if button == "m" then
+        dragging = true
+        drag_start_view = view
+        drag_start_user = {x, y}
+    elseif button == "wu" then
+        zoom = math.min(4, zoom + 0.25)
+    elseif button == "wd" then
+        zoom = math.max(0.25, zoom - 0.25)
+    elseif button == "l" and mode == nil then
         if target.type == "vert" then
             mode = "move-vertex"
         elseif target.type == "edge" then
@@ -173,7 +250,7 @@ function love.mousepressed(x, y, button)
                 mode = "move-edge"
             else
                 -- Otherwise, extrapolate a new polygon from the edge
-                local c = {love.mouse.getPosition()}
+                local c = {x, y}
                 table.insert(vertices, c)
 
                 local poly = {a, b, c}
@@ -191,7 +268,13 @@ function love.mousepressed(x, y, button)
 end
 
 function love.mousereleased(x, y, button)
-    if button == "l" then
+    x, y = translate_mouse(x, y)
+
+    if button == "m" and dragging then
+        dragging = false
+        view[1] = drag_start_view[1] + (x - drag_start_user[1])
+        view[2] = drag_start_view[2] + (y - drag_start_user[2])
+    elseif button == "l" then
         if mode == "move-vertex" then
             target.vert[1] = x
             target.vert[2] = y
@@ -233,6 +316,14 @@ function love.mousereleased(x, y, button)
 end
 
 function love.draw()
+    love.graphics.scale(zoom)
+    love.graphics.translate(view[1], view[2])
+
+    if image.instance ~= nil then
+        love.graphics.setColor(255, 255, 255)
+        love.graphics.draw(image.instance, 0, 0)
+    end
+
     love.graphics.setLineWidth(2)
 
     for i, poly in ipairs(polygons) do

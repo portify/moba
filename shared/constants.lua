@@ -14,6 +14,7 @@ EVENT = enum {
     "ENTITY_ADD",
     "ENTITY_REMOVE",
     "ENTITY_UPDATE",
+    "ENTITY_CONTROL",
     "WORLD",
     "MOVE_TO"
 }
