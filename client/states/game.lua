@@ -1,10 +1,20 @@
+local world = require "shared/world"
+
 local game = {}
+local stats_font
 
 function game:enter(previous, host, server)
+    print("Connection ready")
+
     self.host = host
     self.server = server
 
     self.entities = {}
+    self.world = world:new()
+
+    if stats_font == nil then
+        stats_font = get_resource(love.graphics.newFont, 12)
+    end
 end
 
 function game:leave()
@@ -12,6 +22,7 @@ function game:leave()
     self.server = nil
 
     self.entities = nil
+    self.world = nil
 end
 
 function game:quit()
@@ -34,20 +45,36 @@ function game:update(dt)
     while event do
         if event.type == "receive" then
             local data = mp.unpack(event.data)
-            print("Got packet " .. tostring(EVENT(data.e)))
+            -- print("Got packet " .. tostring(EVENT(data.e)))
 
-            if data.e == EVENT.WORLD_REPLACE then
-                game_world:unpack(data.data)
-            elseif data.e == EVENT.ENTITY_ADD then
-                local type = entity_from_id(data.t)
-                local ent = type:new()
-                game_entities[data.i] = ent
-                ent.__id = data.i
-                ent:unpack(data.d)
+            if data.e == EVENT.ENTITY_ADD then
+                data.e = nil
+
+                for id, params in pairs(data) do
+                    local type = entity_from_id(params.t)
+                    local ent = type:new()
+
+                    self.entities[id] = ent
+                    ent.__id = id
+                    ent:added()
+                    ent:unpack(params.d)
+                end
             elseif data.e == EVENT.ENTITY_REMOVE then
-                game_entities[data.i] = nil
+                for i, id in ipairs(data) do
+                    if self.entities[id] ~= nil then
+                        self.entities[id]:removed()
+                    end
+
+                    self.entities[id] = nil
+                end
             elseif data.e == EVENT.ENTITY_UPDATE then
-                game_entities[data.i]:unpack(data.d)
+                data.e = nil
+
+                for id, packed in pairs(data) do
+                    self.entities[id]:unpack(packed)
+                end
+            elseif data.e == EVENT.WORLD then
+                self.world:unpack(data.d)
             end
         elseif event.type == "disconnect" then
             local reason = DISCONNECT(event.data)
@@ -55,9 +82,13 @@ function game:update(dt)
 
             print("Disconnected from server" .. reason)
 
-            if QUIT_ON_DISCONNECT then
+            if args.local_loop then
                 love.event.quit()
+            else
+                gamestate.switch(states.menu)
             end
+
+            return
         end
 
         event = self.host:service()
@@ -69,10 +100,24 @@ function game:update(dt)
 end
 
 function game:draw()
-    love.graphics.print(self.server:round_trip_time(), 8, 8)
+    self.world:draw()
 
     for id, ent in pairs(self.entities) do
         ent:draw()
+    end
+
+    love.graphics.setFont(stats_font)
+    love.graphics.printf("latency: " .. self.server:round_trip_time() .. "ms\nfps: " .. love.timer.getFPS(),
+        8, 8, love.graphics.getWidth() - 16)
+end
+
+function game:mousepressed(x, y, button)
+    if button == "r" then
+        self.server:send(mp.pack({
+            e = EVENT.MOVE_TO,
+            x = x,
+            y = y
+        }))
     end
 end
 

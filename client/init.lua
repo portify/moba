@@ -1,16 +1,22 @@
-print("client/init.lua")
-
+is_client = true
 gamestate = require "lib/hump/gamestate"
 
+require "client/resource-manager"
+require "shared/entities"
+
 states = {
-    -- menu = require "client/states/menu",
+    menu = require "client/states/menu",
     connecting = require "client/states/connecting",
     game = require "client/states/game"
 }
 
 function love.load()
     love.window.setMode(1280, 720)
-
     gamestate.registerEvents()
-    gamestate.switch(states.connecting, "127.0.0.1:6788")
+
+    if args.local_loop then
+        gamestate.switch(states.connecting, "127.0.0.1:6788")
+    else
+        gamestate.switch(states.menu)
+    end
 end

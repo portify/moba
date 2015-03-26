@@ -8,6 +8,7 @@ function love.errhand(msg)
     while true do
         love.timer.sleep(0.1)
         love.event.pump()
+
         for e, a, b, c in love.event.poll() do
             if e == "quit" then return end
         end
@@ -15,22 +16,35 @@ function love.errhand(msg)
 end
 
 local client = require("server/client")
+local world = require("shared/world")
+
+require "shared/entities"
+
+config = {
+    public = true,
+    port = 6788,
+    peer_count = 64,
+    bandwidth_in = 0,
+    bandwidth_out = 0
+}
 
 function love.load()
-    local bind_address = "0.0.0.0:6788"
+    local address = (config.public and "*:" or "localhost:") .. config.port
 
     server = {
         clients = {},
         entities = {},
         time = 0,
         next_id = 0,
-        host = enet.host_create(bind_address, 64, CHANNEL_COUNT, 0, 0)
+        host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
+            config.bandwidth_in, config.bandwidth_out),
+        world = world:new()
     }
 
     if server.host ~= nil then
-        print("Listening on " .. bind_address)
+        print("Listening on " .. address)
     else
-        error("Cannot listen on " .. bind_address)
+        error("Cannot listen on " .. address)
     end
 end
 
@@ -46,6 +60,7 @@ function love.quit()
 end
 
 function love.update(dt)
+    server.time = server.time + dt
     local event = server.host:service(0)
 
     while event do
@@ -76,5 +91,51 @@ function love.update(dt)
         end
 
         event = server.host:service(0)
+    end
+
+    for id, ent in pairs(server.entities) do
+        ent:update(dt)
+    end
+end
+
+function add_entity(ent)
+    ent.__id = server.next_id
+
+    server.entities[server.next_id] = ent
+    server.next_id = server.next_id + 1
+
+    for i, cl in ipairs(server.clients) do
+        cl:send({
+            e = EVENT.ENTITY_ADD,
+            [ent.__id] = {
+                t = id_from_entity(getmetatable(ent)),
+                d = ent:pack()
+            }
+        })
+    end
+
+    ent:added()
+    return ent
+end
+
+function remove_entity(ent)
+    assert(ent.__id ~= nil, "entity has no id")
+    ent:removed()
+
+    for i, cl in ipairs(server.clients) do
+        cl:send({e = EVENT.ENTITY_REMOVE, i = ent.__id})
+    end
+
+    server.entities[ent.__id] = nil
+    ent.__id = nil
+    return nil
+end
+
+function update_entity(ent)
+    for i, cl in ipairs(server.clients) do
+        cl:send({
+            e = EVENT.ENTITY_UPDATE,
+            [ent.__id] = ent:pack()
+        })
     end
 end

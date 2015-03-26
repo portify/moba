@@ -1,6 +1,8 @@
 local connecting = {}
 
 function connecting:enter(from, address)
+    print("Connecting to " .. address)
+
     local in_bandwidth = 0
     local out_bandwidth = 0
 

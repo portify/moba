@@ -1,3 +1,3 @@
 @echo off
-start "" "C:\Program Files\LOVE\love.exe" --console . server
-start "" "C:\Program Files\LOVE\love.exe" --console .
+start "" "C:\Program Files\LOVE\love.exe" --console . local_loop server
+start "" "C:\Program Files\LOVE\love.exe" --console . local_loop
