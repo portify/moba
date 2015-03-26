@@ -185,12 +185,16 @@ function game:mousemoved(x, y, dx, dy)
 end
 
 function game:mousepressed(x, y, button)
-    if not self.camera_locked and button == "m" then
+    if not self.camera_locked and button == "m" then -- Camera drag mode
         if not love.mouse.getRelativeMode() then
             self.mouse_pre_relative = {love.mouse.getPosition()}
         end
 
         love.mouse.setRelativeMode(true)
+    elseif button == "wd" then -- Zoom out
+        self.camera.scale = math.max(0.4, self.camera.scale - 0.1)
+    elseif button == "wu" then -- Zoom in
+        self.camera.scale = math.min(  1, self.camera.scale + 0.1)
     end
 end
 
