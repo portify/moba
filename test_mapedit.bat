@@ -1,2 +1,2 @@
 @echo off
-start "" "C:\Program Files\LOVE\love.exe" --console . mapedit
+start "" "C:\Program Files\LOVE\love.exe" . mapedit

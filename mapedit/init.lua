@@ -8,11 +8,30 @@ local dragging, drag_start_view, drag_start_user
 local has_moved_mouse
 local view, zoom
 
+local box_select
+
 local function translate_mouse(x, y)
     return x / zoom - view[1], y / zoom - view[2]
 end
 
-local function is_selected(vert)
+local function is_selected(vert, no_boxes_allowed)
+    if not no_boxes_allowed and box_select then
+        local x1, y1 = box_select[1], box_select[2]
+        local x2, y2 = translate_mouse(love.mouse.getPosition())
+
+        if x2 < x1 then
+            x1, x2 = x2, x1
+        end
+
+        if y2 < y1 then
+            y1, y2 = y2, y1
+        end
+
+        if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
+            return true
+        end
+    end
+
     for i, each in ipairs(selection) do
         if each == vert then
             return true
@@ -83,6 +102,7 @@ local function clear_map()
 
     target = {}
     selection = {}
+    box_select = nil
 
     image = nil
 end
@@ -240,6 +260,12 @@ function love.keypressed(key)
         target = {}
 
         collectgarbage()
+    elseif key == "a" and (love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")) then
+        selection = {}
+
+        for i, vert in pairs(vertices) do
+            table.insert(selection, vert)
+        end
     end
 end
 
@@ -250,6 +276,10 @@ function love.mousepressed(x, y, button)
     if button == "l" then
         if not love.keyboard.isDown("lctrl") and not love.keyboard.isDown("rctrl") then
             selection = {}
+        end
+
+        if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
+            box_select = {x, y}
         end
     elseif button == "m" then
         dragging = true
@@ -269,6 +299,28 @@ function love.mousereleased(x, y, button)
     if button == "m" then
         dragging = false
     elseif button == "l" then
+        if box_select then
+            local x1, y1 = box_select[1], box_select[2]
+            local x2, y2 = x, y
+
+            if x2 < x1 then
+                x1, x2 = x2, x1
+            end
+
+            if y2 < y1 then
+                y1, y2 = y2, y1
+            end
+
+            for i, vert in pairs(vertices) do
+                if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
+                    table.insert(selection, vert)
+                end
+            end
+
+            box_select = nil
+            return
+        end
+
         if mode == nil then
             if target.type == "vert" then
                 table.insert(selection, target.vert)
@@ -329,7 +381,7 @@ function love.mousemoved(x, y, dx, dy)
         view[2] = drag_start_view[2] + (y - drag_start_user[2])
     end
 
-    if not love.mouse.isDown("l") then
+    if not love.mouse.isDown("l") or box_select then
         return
     end
 
@@ -471,6 +523,16 @@ function love.draw()
         end
 
         love.graphics.circle("fill", vert[1], vert[2], 4, 8)
+    end
+
+    if box_select then
+        local x1, y1 = box_select[1], box_select[2]
+        local x2, y2 = translate_mouse(love.mouse.getPosition())
+
+        love.graphics.setColor(155, 155, 255, 100)
+        love.graphics.rectangle("fill", x1, y1, x2 - x1, y2 - y1)
+        love.graphics.setColor(155, 155, 255, 200)
+        love.graphics.rectangle("line", x1, y1, x2 - x1, y2 - y1)
     end
 
     love.graphics.pop()
