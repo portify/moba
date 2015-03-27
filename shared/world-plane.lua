@@ -1,10 +1,13 @@
+local util = require "shared/util"
+
 local plane = {}
 plane.__index = plane
 
 function plane:new(a, b, c)
     return setmetatable({
         points = {a, b, c},
-        planes = {}
+        planes = {},
+        portal = {}
     }, self)
 end
 
@@ -31,6 +34,10 @@ function plane:contains(x, y)
     local t = (p0[1] * p1[2] - p0[2] * p1[1] + (p0[2] - p1[2]) * x + (p1[1] - p0[1]) * y) * sign
 
     return s > 0 and t > 0 and (s + t) < 2 * A * sign
+end
+
+function plane:project(x, y)
+    return util.point_into_triangle(self.points, x, y)
 end
 
 function plane:distance(other)

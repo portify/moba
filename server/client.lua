@@ -83,6 +83,8 @@ function client:disconnected(data)
     end
 end
 
+local funnel = require "shared/funnel"
+
 function client:received(data)
     -- print(self.peer:index() .. " --> " .. tostring(EVENT(data.e)))
 
@@ -104,6 +106,14 @@ function client:received(data)
 
             local b = server.world:get_plane(data.x, data.y)
 
+            if b == nil then
+                local point, distance
+                b, point, distance = server.world:project(data.x, data.y)
+                data.x = point[1]
+                data.y = point[2]
+                -- print(distance)
+            end
+
             if b ~= nil then
                 local a = self.player:get_world_plane()
                 local path
@@ -117,13 +127,16 @@ function client:received(data)
                     local planes = a:find_path(b)
 
                     if planes ~= nil then
-                        path = {{data.x, data.y}}
+                        path = {}
+                        funnel({self.player.px, self.player.py}, {data.x, data.y}, planes, path)
 
-                        for i, plane in ipairs(planes) do
-                            table.insert(path, {plane:center()})
-                        end
-
-                        table.insert(path, {self.player.px, self.player.py})
+                        -- path = {{data.x, data.y}}
+                        --
+                        -- for i, plane in ipairs(planes) do
+                        --     table.insert(path, {plane:center()})
+                        -- end
+                        --
+                        -- table.insert(path, {self.player.px, self.player.py})
                     end
                 end
 

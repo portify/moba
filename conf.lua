@@ -17,7 +17,8 @@ end
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"
-    t.console = not not args.server
+    -- t.console = not not args.server
+    t.console = true
 
     if args.mapedit then
         t.window.width = 1280

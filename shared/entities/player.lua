@@ -98,22 +98,22 @@ function player:update_camera(camera, dt, paused)
 end
 
 function player:draw()
-    -- if self.path ~= nil then
-    --     love.graphics.setColor(255, 255, 255)
-    --
-    --     local i = #self.path
-    --
-    --     while i > 1 do
-    --         local a = self.path[i]
-    --         local b = self.path[i - 1]
-    --
-    --         love.graphics.line(a[1], a[2], b[1], b[2])
-    --
-    --         i = i - 1
-    --     end
-    -- end
-    --
-    -- local plane = self:get_world_plane()
+    if self.path ~= nil then
+        love.graphics.setColor(255, 255, 255)
+
+        local i = #self.path
+
+        while i > 1 do
+            local a = self.path[i]
+            local b = self.path[i - 1]
+
+            love.graphics.line(a[1], a[2], b[1], b[2])
+
+            i = i - 1
+        end
+    end
+
+    local plane = self:get_world_plane()
     --
     -- if plane ~= nil then
     --     love.graphics.setColor(100, 200, 100, 50)

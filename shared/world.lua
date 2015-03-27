@@ -66,6 +66,10 @@ function world:load()
                                 if (a1 == b2 and a2 == b1) or (a1 == b1 and a2 == b2) then
                                     a.planes[i] = b
                                     b.planes[j] = a
+
+                                    a.portal[b] = {left = a1, right = a2}
+                                    b.portal[a] = {left = b1, right = b2}
+
                                     n = n + 1
                                 end
                             end
@@ -86,6 +90,22 @@ end
 function world:unpack(t)
     self.filename = t[1]
     self:load()
+end
+
+function world:project(ix, iy)
+    local best_plane, best_point, lowest
+
+    for i, plane in ipairs(self.mesh) do
+        local point, distance = plane:project(ix, iy)
+
+        if lowest == nil or distance < lowest then
+            best_plane = plane
+            best_point = point
+            lowest = distance
+        end
+    end
+
+    return best_plane, best_point, lowest
 end
 
 function world:get_plane(x, y)

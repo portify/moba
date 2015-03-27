@@ -1,5 +1,19 @@
 local util = {}
 
+function util.area2(poly)
+	local ax = poly[2][1] - poly[1][1]
+	local ay = poly[2][2] - poly[1][2]
+	local bx = poly[3][1] - poly[1][1]
+	local by = poly[3][2] - poly[1][2]
+
+	return bx * ay - ax * by
+end
+
+function util.center(poly)
+	return (poly[1][1] + poly[2][1] + poly[3][1]) / 3,
+		   (poly[1][2] + poly[2][2] + poly[3][2]) / 3
+end
+
 function util.in_box(vert, x1, x2, y1, y2)
 	if x2 < x1 then
         x1, x2 = x2, x1

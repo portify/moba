@@ -77,9 +77,11 @@ local function save_map(filename)
     end
 
     local vert_id = {}
+    local vert_next = 1
 
     for i, vert in pairs(vertices) do
-        vert_id[vert] = #vert_id
+        vert_id[vert] = vert_next
+        vert_next = vert_next + 1
         data = data .. "v " .. vert[1] .. " " .. vert[2] .. "\n"
     end
 
@@ -87,6 +89,11 @@ local function save_map(filename)
         local a = vert_id[poly[1]]
         local b = vert_id[poly[2]]
         local c = vert_id[poly[3]]
+
+        if util.area2(poly) < 0 then
+            a, b, c = c, b, a
+        end
+
         data = data .. "p " .. a .. " " .. b .. " " .. c .. "\n"
     end
 
@@ -183,6 +190,12 @@ function love.keypressed(key)
             end
         elseif key == "d" then
             selection = {}
+        elseif key == "f" then
+            for i, poly in pairs(polygons) do
+                if util.area2(poly) < 0 then
+                    poly[1], poly[2], poly[3] = poly[3], poly[2], poly[1]
+                end
+            end
         end
     else
         if key == "escape" then
@@ -496,6 +509,20 @@ function love.draw()
             poly[1][1], poly[1][2],
             poly[2][1], poly[2][2],
             poly[3][1], poly[3][2])
+
+        local tx, ty = util.center(poly)
+        local area2 = util.area2(poly)
+
+        if area2 >= 0 then
+            love.graphics.setColor(0, 255, 0)
+        else
+            love.graphics.setColor(255, 0, 0)
+        end
+
+        tx = tx - 100
+        ty = ty - 6
+
+        love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
 
         for i=1, #poly do
             local a = poly[i]

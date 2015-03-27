@@ -94,10 +94,23 @@ function world:draw()
     end
 
     for i, plane in ipairs(self.mesh) do
-        love.graphics.setColor(255, 255, 255, 25)
-        plane:draw("fill")
-        love.graphics.setColor(255, 255, 255, 50)
+        -- love.graphics.setColor(255, 255, 255, 25)
+        -- plane:draw("fill")
+        love.graphics.setColor(0, 0, 0)
         plane:draw("line")
+    end
+
+    for i, plane in ipairs(self.mesh) do
+        for j=1, 3 do
+            local other = plane.planes[j]
+
+            if other ~= nil then
+                local c1 = {plane:center()}
+                local c2 = {other:center()}
+                love.graphics.setColor(0, 255, 0)
+                love.graphics.line(c1[1], c1[2], c2[1], c2[2])
+            end
+        end
     end
 end
 
