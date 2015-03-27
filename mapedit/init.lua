@@ -1,4 +1,4 @@
-print("mapedit")
+local util = require "mapedit/util"
 
 local vertices, polygons, image
 local mode, target
@@ -10,80 +10,27 @@ local view, zoom
 
 local box_select
 
+local ui_font
+
+local status_text
+local status_time
+
 local function translate_mouse(x, y)
-    return x / zoom - view[1], y / zoom - view[2]
+    return x / zoom + view[1],
+           y / zoom + view[2] - 20
 end
 
 local function is_selected(vert, no_boxes_allowed)
-    if not no_boxes_allowed and box_select then
+    if box_select then
         local x1, y1 = box_select[1], box_select[2]
         local x2, y2 = translate_mouse(love.mouse.getPosition())
 
-        if x2 < x1 then
-            x1, x2 = x2, x1
-        end
-
-        if y2 < y1 then
-            y1, y2 = y2, y1
-        end
-
-        if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
+        if util.in_box(vert, x1, y1, x2, y2) then
             return true
         end
     end
 
-    for i, each in ipairs(selection) do
-        if each == vert then
-            return true
-        end
-    end
-
-    return false
-end
-
-local function line_on_circle(a, b, c, r)
-    local d = {
-        b[1] - a[1],
-        b[2] - a[2]
-    }
-
-    local f = {
-        a[1] - c[1],
-        a[2] - c[2]
-    }
-
-    local a = (d[1]^2 + d[2]^2)
-    local b = 2 * (f[1] * d[1] + f[2] * d[2])
-    local c = (f[1]^2 + f[2]^2) - r^2
-
-    local discriminant = b * b - 4 * a * c
-
-    if discriminant < 0 then
-        return false
-    end
-
-    discriminant = math.sqrt(discriminant)
-
-    local t1 = (-b - discriminant) / (2 * a)
-    local t2 = (-b + discriminant) / (2 * a)
-
-    return (t1 >= 0 and t1 <= 1) or (t2 >= 0 and t2 <= 1)
-end
-
-local function point_in_triangle(x, y, p0, p1, p2)
-    local A = 1/2 * (-p1[2] * p2[1] + p0[2] * (-p1[1] + p2[1]) + p0[1] * (p1[2] - p2[2]) + p1[1] * p2[2])
-    local sign
-
-    if A < 0 then
-        sign = -1
-    else
-        sign = 1
-    end
-
-    local s = (p0[2] * p2[1] - p0[1] * p2[2] + (p2[2] - p0[2]) * x + (p0[1] - p2[1]) * y) * sign
-    local t = (p0[1] * p1[2] - p0[2] * p1[1] + (p0[2] - p1[2]) * x + (p1[1] - p0[1]) * y) * sign
-
-    return s > 0 and t > 0 and (s + t) < 2 * A * sign
+    return util.in_array(selection, vert)
 end
 
 local function set_image(filename)
@@ -144,6 +91,9 @@ local function save_map(filename)
     end
 
     love.filesystem.write(filename, data)
+
+    status_text = "Saved map to '" .. filename .. "'..."
+    status_time = 2
 end
 
 local function load_map(filename)
@@ -169,9 +119,13 @@ local function load_map(filename)
     end
 
     collectgarbage()
+
+    status_text = "Loaded map from '" .. filename .. "'..."
+    status_time = 2
 end
 
 function love.load()
+    ui_font = love.graphics.newFont(12)
     reset_map()
 end
 
@@ -190,13 +144,13 @@ local function update_target()
             local a = poly[i]
             local b = poly[(i % #poly) + 1]
 
-            if line_on_circle(a, b, pos, 2) then
+            if util.line_on_circle(a, b, pos, 2) then
                 target = {type = "edge", poly = poly, edge = i, a = a, b = b}
                 return
             end
         end
 
-        if point_in_triangle(pos[1], pos[2], poly[1], poly[2], poly[3]) then
+        if util.point_in_triangle(pos[1], pos[2], poly[1], poly[2], poly[3]) then
             target = {type = "poly", poly = poly}
             return
         end
@@ -206,65 +160,56 @@ local function update_target()
 end
 
 function love.update(dt)
-    local x, y = translate_mouse(love.mouse.getPosition())
+    if status_text ~= nil then
+        status_time = status_time - dt
 
-    if not love.mouse.isDown("l") then
-        update_target()
+        if status_time < 0 then
+            status_text = nil
+        end
     end
-
-    -- if mode == "move-vertex" then
-    --     target.vert[1] = x
-    --     target.vert[2] = y
-    -- elseif mode == "move-edge" then
-    --     local a = target.poly[target.edge]
-    --     local b = target.poly[(target.edge % #target.poly) + 1]
-    --
-    --     local i = a[1]
-    --     local j = a[2]
-    --
-    --     a[1] = x - target.move_x
-    --     a[2] = y - target.move_y
-    --     b[1] = (x + (b[1] - i)) - target.move_x
-    --     b[2] = (y + (b[2] - j)) - target.move_y
-    -- end
-
-    -- if dragging then
-    --     view[1] = drag_start_view[1] + (x - drag_start_user[1])
-    --     view[2] = drag_start_view[2] + (y - drag_start_user[2])
-    -- end
 end
 
 function love.keypressed(key)
-    if key == "s" then
-        save_map("maps/map.txt")
-    elseif key == "l" then
-        load_map("maps/map.txt")
-    elseif key == "delete" and mode == nil then
-        for i=#polygons, 1, -1 do
-            local p = polygons[i]
+    if love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
+        if key == "s" then
+            save_map("maps/map.txt")
+        elseif key == "l" then
+            load_map("maps/map.txt")
+        elseif key == "a" then
+            selection = {}
 
-            -- This is pretty bad
-            if is_selected(p[1]) or is_selected(p[2]) or is_selected(p[3]) then
-                table.remove(polygons, i)
+            for i, vert in pairs(vertices) do
+                table.insert(selection, vert)
             end
-            -- if is_selected(p[1]) then
-            --     if is_selected(p[2]) or is_selected(p[3]) then
-            --         table.remove(polygons, i)
-            --     end
-            -- elseif is_selected(p[2]) and is_selected(p[3]) then
-            --     table.remove(polygons, i)
-            -- end
+        elseif key == "d" then
+            selection = {}
         end
+    else
+        if key == "escape" then
+            selection = {}
+        elseif key == "delete" and mode == nil then
+            for i=#polygons, 1, -1 do
+                local p = polygons[i]
 
-        selection = {}
-        target = {}
+                -- This is pretty bad
+                -- Deletes way too much
+                if is_selected(p[1]) or is_selected(p[2]) or is_selected(p[3]) then
+                    table.remove(polygons, i)
+                end
 
-        collectgarbage()
-    elseif key == "a" and (love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")) then
-        selection = {}
+                -- if is_selected(p[1]) then
+                --     if is_selected(p[2]) or is_selected(p[3]) then
+                --         table.remove(polygons, i)
+                --     end
+                -- elseif is_selected(p[2]) and is_selected(p[3]) then
+                --     table.remove(polygons, i)
+                -- end
+            end
 
-        for i, vert in pairs(vertices) do
-            table.insert(selection, vert)
+            selection = {}
+            target = {}
+
+            collectgarbage()
         end
     end
 end
@@ -282,13 +227,17 @@ function love.mousepressed(x, y, button)
             box_select = {x, y}
         end
     elseif button == "m" then
-        dragging = true
-        drag_start_view = view
-        drag_start_user = {x, y}
+        love.mouse.setRelativeMode(true)
     elseif button == "wu" then
+        local old = zoom
         zoom = math.min(4, zoom + 0.25)
+        local new = zoom
+        -- zoom into cursor
     elseif button == "wd" then
+        local old = zoom
         zoom = math.max(0.25, zoom - 0.25)
+        local new = zoom
+        -- zoom out of cursor
     end
 end
 
@@ -297,7 +246,8 @@ function love.mousereleased(x, y, button)
     x, y = translate_mouse(x, y)
 
     if button == "m" then
-        dragging = false
+        -- dragging = false
+        love.mouse.setRelativeMode(false)
     elseif button == "l" then
         if box_select then
             local x1, y1 = box_select[1], box_select[2]
@@ -336,36 +286,28 @@ function love.mousereleased(x, y, button)
             target.vert[1] = x
             target.vert[2] = y
 
-            -- Try to snap the vertex
-            for i, vert in pairs(vertices) do
-                -- Serious bug: Will snap if own polygon is connected to receptor
-                if vert ~= target.vert and math.sqrt((vert[1]-target.vert[1])^2 + (vert[2]-target.vert[2])^2) <= 4 then
-                    -- O snap.
-                    -- This means we should replace target.vert with vert in all polygons
+            do
+                local snap = util.find_nearby_vert(vertices, target.vert, 6)
 
-                    for i, poly in ipairs(polygons) do
-                        if poly[1] == target.vert then poly[1] = vert end
-                        if poly[2] == target.vert then poly[2] = vert end
-                        if poly[3] == target.vert then poly[3] = vert end
+                if snap ~= nil then
+                    for i=#polygons, 1, -1 do
+                        local poly = polygons[i]
+
+                        if poly[1] == target.vert then poly[1] = snap end
+                        if poly[2] == target.vert then poly[2] = snap end
+                        if poly[3] == target.vert then poly[3] = snap end
+
+                        -- If polygon snaps into itself remove the polygon as it has no area anymore
+                        if poly[1] == poly[2] or poly[1] == poly[3] or poly[2] == poly[3] then
+                            table.remove(polygons, i)
+                        end
                     end
 
-                    target.vert = vert
-                    collectgarbage()
-
-                    break
+                    target = {}
                 end
             end
-        -- elseif mode == "move-edge" then
-        --     local a = target.a
-        --     local b = target.b
-        --
-        --     local i = a[1]
-        --     local j = a[2]
-        --
-        --     a[1] = x - target.move_x
-        --     a[2] = y - target.move_y
-        --     b[1] = (x + (b[1] - i)) - target.move_x
-        --     b[2] = (y + (b[2] - j)) - target.move_y
+
+            collectgarbage()
         end
 
         mode = nil
@@ -376,12 +318,13 @@ function love.mousemoved(x, y, dx, dy)
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
 
-    if dragging then
-        view[1] = drag_start_view[1] + (x - drag_start_user[1])
-        view[2] = drag_start_view[2] + (y - drag_start_user[2])
+    if love.mouse.getRelativeMode() then
+        view[1] = view[1] - dx / zoom
+        view[2] = view[2] - dy / zoom
     end
 
     if not love.mouse.isDown("l") or box_select then
+        update_target()
         return
     end
 
@@ -428,7 +371,7 @@ function love.mousemoved(x, y, dx, dy)
                 table.insert(polygons, poly)
 
                 target = {
-                    type = "vertex",
+                    type = "vert",
                     vert = c
                 }
 
@@ -466,10 +409,70 @@ function love.mousemoved(x, y, dx, dy)
     end
 end
 
+local function draw_menu()
+    local width, height = love.graphics.getDimensions()
+
+    local bar_padding = 3
+    local bar_height = 20
+
+    local label_space = 6
+    local label_width = 64
+
+    local labels = {"File", "Edit", "Tools", "Help"}
+
+    love.graphics.setColor(240, 240, 240)
+    love.graphics.rectangle("fill", 0, 0, width, bar_height)
+    love.graphics.setColor(0, 0, 0)
+
+    local font = love.graphics.getFont()
+    local x = bar_padding
+
+    local mx, my = love.mouse.getPosition()
+
+    for i, label in ipairs(labels) do
+        local w = font:getWidth(label) + label_space * 2
+
+        if my < bar_height and mx >= x and mx < x + w then
+            love.graphics.setColor(0, 0, 0, 50)
+            love.graphics.rectangle("fill", x, 0, w, bar_height)
+            love.graphics.setColor(0, 0, 0)
+        end
+
+        love.graphics.print(label, x + label_space, bar_padding)
+        x = x + w
+    end
+end
+
+local function draw_status()
+    local width, height = love.graphics.getDimensions()
+    local p = 4
+    local h = 22
+    local w = width - p * 2
+
+    local textl
+
+    if status_text == nil then
+        textl =
+            "FPS: " .. love.timer.getFPS() .. " | " ..
+            "Triangles: " .. #polygons
+    else
+        textl = status_text
+    end
+
+    local mx, my = translate_mouse(love.mouse.getPosition())
+    local textr = mx .. ", " .. my
+
+    love.graphics.setColor(240, 240, 240)
+    love.graphics.rectangle("fill", 0, height - h, width, h)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.printf(textl, p * 2, height - h + p, width - p * 4)
+    love.graphics.printf(textr, p * 2, height - h + p, width - p * 4, "right")
+end
+
 function love.draw()
     love.graphics.push()
     love.graphics.scale(zoom)
-    love.graphics.translate(view[1], view[2])
+    love.graphics.translate(-view[1], -view[2] + 20)
 
     if image.instance ~= nil then
         love.graphics.setColor(255, 255, 255)
@@ -517,12 +520,22 @@ function love.draw()
         if is_selected(vert) then
             love.graphics.setColor(50, 50, 255)
         elseif target.type == "vert" and target.vert == vert then
-            love.graphics.setColor(50, 255, 50, 150)
+            love.graphics.setColor(50, 255, 50)
         else
             love.graphics.setColor(255, 255, 255)
         end
 
         love.graphics.circle("fill", vert[1], vert[2], 4, 8)
+    end
+
+    if target.type == "vert" then
+        local snap = util.find_nearby_vert(vertices, target.vert, 8)
+
+        if snap ~= nil then
+            love.graphics.setColor(0, 0, 0)
+            love.graphics.setLineWidth(8)
+            love.graphics.line(target.vert[1], target.vert[2], snap[1], snap[2])
+        end
     end
 
     if box_select then
@@ -536,6 +549,14 @@ function love.draw()
     end
 
     love.graphics.pop()
-    love.graphics.setColor(255, 255, 255)
-    love.graphics.print(#polygons .. " polygons, " .. #vertices .. " vertices", 16, 16)
+
+    -- Draw menu
+    love.graphics.setFont(ui_font)
+    draw_menu()
+    draw_status()
+    -- love.graphics.setColor(255, 255, 255)
+    -- love.graphics.printf(
+    --     #polygons .. " polygons, " .. #vertices .. " vertices\n" ..
+    --     "view: " .. view[1] .. ", " .. view[2],
+    --     16, 16, love.graphics.getWidth() - 32)
 end
