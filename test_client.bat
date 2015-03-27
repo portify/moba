@@ -1,2 +1,2 @@
 @echo off
-start "" "C:\Program Files\LOVE\love.exe" --console .
+start "" "C:\Program Files\LOVE\love.exe" .

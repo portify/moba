@@ -17,10 +17,16 @@ end
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"
-    t.console = true
-    t.window = nil
+    t.console = not not args.server
 
-    if args.server then
+    if args.mapedit then
+        t.window.width = 1280
+        t.window.height = 720
+    else
+        t.window = nil
+    end
+
+    if not args.mapedit and args.server then
         t.modules.audio    = false
         t.modules.font     = false
         t.modules.graphics = false
