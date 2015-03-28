@@ -124,7 +124,7 @@ function world:draw()
         love.graphics.draw(self.image, 0, 0)
     end
 
-    if config.debug_nav then
+    if debug_nav then
         love.graphics.setLineWidth(1)
 
         for i, plane in ipairs(self.mesh) do
@@ -133,9 +133,16 @@ function world:draw()
             love.graphics.setColor(255, 255, 255, 50)
             plane:draw("line")
         end
+
+        local plane = self:get_plane(states.game.camera:mousepos())
+
+        if plane ~= nil then
+            love.graphics.setColor(200, 100, 100, 100)
+            plane:draw("fill")
+        end
     end
 
-    if config.debug_nav_link then
+    if debug_nav_link then
         love.graphics.setLineWidth(1)
 
         for i, plane in ipairs(self.mesh) do

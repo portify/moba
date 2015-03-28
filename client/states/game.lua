@@ -192,7 +192,7 @@ function game:draw()
 
     self.camera:detach()
 
-    if config.debug_ents then
+    if debug_ents then
         local count = 0
         local control = self:get_control()
 
@@ -205,13 +205,12 @@ function game:draw()
                 love.graphics.setColor(255, 255, 255)
             end
 
-            love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 28 + count * 10)
+            love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 16 + count * 8)
             count = count + 1
         end
 
         love.graphics.setColor(0, 255, 255)
         love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
-        love.graphics.print("------------------", 8, 18)
     end
 end
 

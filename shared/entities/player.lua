@@ -123,8 +123,9 @@ function player:update_camera(camera, dt, paused)
 end
 
 function player:draw()
-    if config.debug_path and self.path ~= nil then
-        love.graphics.setColor(255, 255, 255)
+    if debug_path and self.path ~= nil then
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(0, 255, 255)
 
         local i = #self.path
 
@@ -138,13 +139,15 @@ function player:draw()
         end
     end
 
-    local plane = self:get_world_plane()
-    --
-    -- if plane ~= nil then
-    --     love.graphics.setColor(100, 200, 100, 50)
-    --     plane:draw("fill")
-    -- end
-    --
+    if debug_nav then
+        local plane = self:get_world_plane()
+
+        if plane ~= nil then
+            love.graphics.setColor(100, 200, 100, 100)
+            plane:draw("fill")
+        end
+    end
+
     -- love.graphics.setColor(255, 255, 255)
     -- love.graphics.setLineWidth(2)
     -- love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
