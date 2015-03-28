@@ -83,8 +83,6 @@ function client:disconnected(data)
     end
 end
 
-local funnel = require "shared/funnel"
-
 function client:received(data)
     -- print(self.peer:index() .. " --> " .. tostring(EVENT(data.e)))
 
@@ -105,64 +103,15 @@ function client:received(data)
             --     table.insert(self.player.path, 1, {data.x, data.y})
             -- end
 
-            local b = server.world:get_plane(data.x, data.y)
 
-            if b == nil then
-                local point, distance
-                b, point, distance = server.world:project(data.x, data.y)
-                data.x = point[1]
-                data.y = point[2]
-                -- print(distance)
-            end
-
-            if b ~= nil then
-                local a = self.player:get_world_plane()
-                local path
-
-                if a == nil then
-                    path = {
-                        {data.x, data.y},
-                        {self.player.px, self.player.py}
-                    }
-                else
-                    local planes = a:find_path(b)
-
-                    if planes ~= nil then
-                        path = {}
-                        funnel({self.player.px, self.player.py}, {data.x, data.y}, planes, path)
-
-                        -- path = {{data.x, data.y}}
-                        --
-                        -- for i, plane in ipairs(planes) do
-                        --     table.insert(path, {plane:center()})
-                        -- end
-                        --
-                        -- table.insert(path, {self.player.px, self.player.py})
-                    end
-                end
-
-                self.player.path = path
-                self.player.path_progress = 0
-
-                update_entity(self.player)
-            end
         end
     elseif data.e == EVENT.USE_ABILITY then
         if self.player ~= nil then
             self.player:use_ability(data.i)
         end
-
-        if data.i == 1 then
-            local speed = 300
-            local p = entities.projectile:new()
-            p.px = self.player.px + self.player.vx * 8
-            p.py = self.player.py + self.player.vy * 8
-            p.vx = self.player.vx * speed
-            p.vy = self.player.vy * speed
-            add_entity(p)
-        end
     else
-        -- self:disconnect(DISCONNECT.INVALID_PACKET)
+        print("Got unknown packet from client " .. self.peer:index() .. ": " .. data.e)
+        self:disconnect(DISCONNECT.INVALID_PACKET)
     end
 end
 
