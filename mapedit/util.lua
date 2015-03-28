@@ -57,6 +57,20 @@ function util.find_nearby_vert(list, vert, dist)
 	return nil
 end
 
+local function bbox(x1, x2, y1, y2, w, h)
+	return not (x1 > x2 + w or y1 > y2 + h or x2 > x1 + w or y2 > y1 + h)
+end
+
+function util.find_near_vert(list, vert)
+	for i, test in pairs(list) do
+		if test ~= vert and bbox(vert[1] - 5, test[1] - 5, vert[2] - 5, test[2] - 5, 10, 10) then
+			return test
+		end
+	end
+
+	return nil
+end
+
 function util.line_on_circle(a, b, c, r)
     local d = {
         b[1] - a[1],

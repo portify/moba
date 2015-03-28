@@ -447,12 +447,26 @@ local function draw_map()
         end
     end
 
+    -- Figure out snap stuff
+    local snap1, snap2
+
+    if target.type == "vert" then
+        -- snap2 = util.find_nearby_vert(vertices, target.vert, 8)
+        snap2 = util.find_near_vert(vertices, target.vert)
+
+        if snap2 ~= nil then
+            snap1 = target.vert
+        end
+    end
+
     local vertex_count = 0
 
     -- Draw all vertices separately
     for i, vert in pairs(vertices) do
         if vert_seen(vert) then -- Cull vertices to screen as well
-            if is_selected(vert) then
+            if vert == snap1 or vert == snap2 then
+                love.graphics.setColor(200,  50, 200)
+            elseif is_selected(vert) then
                 love.graphics.setColor( 50, 100, 200)
             elseif target.type == "vert" and target.vert == vert then
                 love.graphics.setColor( 50, 200,  50)
@@ -806,7 +820,8 @@ function love.mousereleased(x, y, button)
             target.vert[2] = y
 
             do
-                local snap = util.find_nearby_vert(vertices, target.vert, 8)
+                -- local snap = util.find_nearby_vert(vertices, target.vert, 8)
+                local snap = util.find_near_vert(vertices, target.vert)
 
                 if snap ~= nil then
                     for i=#polygons, 1, -1 do
@@ -949,15 +964,15 @@ function love.draw()
     local vertex_count = draw_map()
 
     -- Draw the (extremely ugly) vertex snapping guide
-    if target.type == "vert" then
-        local snap = util.find_nearby_vert(vertices, target.vert, 8)
-
-        if snap ~= nil then
-            love.graphics.setColor(0, 0, 0)
-            love.graphics.setLineWidth(8)
-            love.graphics.line(target.vert[1], target.vert[2], snap[1], snap[2])
-        end
-    end
+    -- if target.type == "vert" then
+    --     local snap = util.find_nearby_vert(vertices, target.vert, 8)
+    --
+    --     if snap ~= nil then
+    --         love.graphics.setColor(0, 0, 0)
+    --         love.graphics.setLineWidth(8)
+    --         love.graphics.line(target.vert[1], target.vert[2], snap[1], snap[2])
+    --     end
+    -- end
 
     -- Draw the box we're currently selecting in
     if box_select then
