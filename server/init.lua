@@ -113,12 +113,13 @@ function love.update(dt)
 end
 
 function add_entity(ent)
+    if ent.__id ~= nil then return ent end
     ent.__id = server.next_id
 
     server.entities[server.next_id] = ent
     server.next_id = server.next_id + 1
 
-    for i, cl in ipairs(server.clients) do
+    for i, cl in pairs(server.clients) do
         cl:send({
             e = EVENT.ENTITY_ADD,
             [ent.__id] = {
@@ -133,10 +134,10 @@ function add_entity(ent)
 end
 
 function remove_entity(ent)
-    assert(ent.__id ~= nil, "entity has no id")
+    if ent.__id == nil then return nil end
     ent:removed()
 
-    for i, cl in ipairs(server.clients) do
+    for i, cl in pairs(server.clients) do
         cl:send({e = EVENT.ENTITY_REMOVE, ent.__id})
     end
 
@@ -146,7 +147,9 @@ function remove_entity(ent)
 end
 
 function update_entity(ent)
-    for i, cl in ipairs(server.clients) do
+    if ent.__id == nil then return end
+
+    for i, cl in pairs(server.clients) do
         cl:send({
             e = EVENT.ENTITY_UPDATE,
             [ent.__id] = ent:pack()

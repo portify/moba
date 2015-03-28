@@ -151,7 +151,7 @@ local function update_target()
             local a = poly[i]
             local b = poly[(i % #poly) + 1]
 
-            if util.line_on_circle(a, b, pos, 2) then
+            if util.line_on_circle(a, b, pos, 5) then
                 target = {type = "edge", poly = poly, edge = i, a = a, b = b}
                 return
             end

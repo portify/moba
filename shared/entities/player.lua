@@ -155,4 +155,19 @@ function player:draw()
         width, height)
 end
 
+function player:move_to(x, y)
+end
+
+function player:use_ability(i)
+    if i == 1 then
+        local speed = 300
+        local p = entities.projectile:new()
+        p.px = self.px + self.vx * 8
+        p.py = self.py + self.vy * 8
+        p.vx = self.vx * speed
+        p.vy = self.vy * speed
+        add_entity(p)
+    end
+end
+
 return player

@@ -90,6 +90,7 @@ function client:received(data)
 
     if data.e == EVENT.MOVE_TO then
         if self.player ~= nil then
+            self.player:move_to(data.x, data.y)
             -- self.player.x = data.x
             -- self.player.y = data.y
 
@@ -147,8 +148,8 @@ function client:received(data)
             end
         end
     elseif data.e == EVENT.USE_ABILITY then
-        if self.player == nil then
-            return
+        if self.player ~= nil then
+            self.player:use_ability(data.i)
         end
 
         if data.i == 1 then

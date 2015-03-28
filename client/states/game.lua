@@ -97,11 +97,9 @@ function game:update(dt)
                     self.entities[id] = nil
                 end
             elseif data.e == EVENT.ENTITY_UPDATE then
-                print("received batch entity update")
                 data.e = nil
 
                 for id, packed in pairs(data) do
-                    print(" - got entity update for " .. id)
                     self.entities[id]:unpack(packed)
                 end
             elseif data.e == EVENT.ENTITY_CONTROL then
@@ -208,7 +206,7 @@ end
 
 function game:mousemoved(x, y, dx, dy)
     if love.mouse.getRelativeMode() then
-        self.camera:move(dx, dy)
+        self.camera:move(-dx, -dy)
     end
 end
 
