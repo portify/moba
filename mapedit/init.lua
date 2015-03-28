@@ -332,8 +332,8 @@ function love.mousemoved(x, y, dx, dy)
     x, y = translate_mouse(x, y)
 
     if love.mouse.getRelativeMode() then
-        view[1] = view[1] + dx / zoom
-        view[2] = view[2] + dy / zoom
+        view[1] = view[1] - dx / zoom
+        view[2] = view[2] - dy / zoom
     end
 
     if mode == nil then

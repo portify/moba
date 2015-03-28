@@ -4,6 +4,12 @@ local camera = require "lib/hump/camera"
 
 local game = {}
 
+local small_font
+
+function game:init()
+    small_font = love.graphics.newFont(8)
+end
+
 function game:enter(previous, address, host, server)
     print("Connection ready")
 
@@ -91,9 +97,11 @@ function game:update(dt)
                     self.entities[id] = nil
                 end
             elseif data.e == EVENT.ENTITY_UPDATE then
+                print("received batch entity update")
                 data.e = nil
 
                 for id, packed in pairs(data) do
+                    print(" - got entity update for " .. id)
                     self.entities[id]:unpack(packed)
                 end
             elseif data.e == EVENT.ENTITY_CONTROL then
@@ -176,6 +184,26 @@ function game:draw()
     end
 
     self.camera:detach()
+
+    local count = 0
+    local control = self:get_control()
+
+    love.graphics.setFont(small_font)
+
+    for id, ent in pairs(self.entities) do
+        if ent == control then
+            love.graphics.setColor(0, 255, 0)
+        else
+            love.graphics.setColor(255, 255, 255)
+        end
+
+        love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 28 + count * 10)
+        count = count + 1
+    end
+
+    love.graphics.setColor(0, 255, 255)
+    love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
+    love.graphics.print("------------------", 8, 18)
 end
 
 function game:mousemoved(x, y, dx, dy)

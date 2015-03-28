@@ -23,3 +23,13 @@ end
 function id_from_entity(e)
     return i_table[e]
 end
+
+function get_entity_type_name(ent)
+    local meta = getmetatable(ent)
+    for name, impl in pairs(entities) do
+        if impl == meta then
+            return name
+        end
+    end
+    return "<unknown>"
+end
