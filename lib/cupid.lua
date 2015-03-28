@@ -19,7 +19,7 @@ local cconf = {
 	console_key_repeat = true,
 	console_start_open = false,
 
-	enable_remote = true,
+	enable_remote = false,
 	font = "whitrabt.ttf",
 
 	enable_watcher = false,
@@ -28,7 +28,7 @@ local cconf = {
 	watcher_patterns = {"lua$"},
 	enable_physics = false,
 	physics_show = false,
-	enable_temporal = true,
+	enable_temporal = false,
 
 }
 
@@ -295,7 +295,7 @@ mods.console = function() return {
 	log = {},
 	history = {},
 	history_idx = 0,
-	lines = 12,
+	lines = 18,
 	["init"] = function(self)
 		if cconf.console_override_print then
 			local _print = print
@@ -363,11 +363,11 @@ mods.console = function() return {
 			self:toggle()
 			return false
          elseif key == "return" then
-			if ( #self.buffer > 0 ) then
+			if ( #self.buffer > 0 ) and self.shown then
 				self:command(self.buffer)
 				self.buffer = ""
-			else
-				self:toggle()
+			-- else
+			-- 	self:toggle()
 			end
          elseif key == "backspace" then
 			self.buffer = self.buffer:sub(0, -2)

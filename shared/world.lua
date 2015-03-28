@@ -98,7 +98,7 @@ function world:project(ix, iy)
     for i, plane in ipairs(self.mesh) do
         local point, distance = plane:project(ix, iy)
 
-        if lowest == nil or distance < lowest then
+        if point ~= nil and (lowest == nil or distance < lowest) then
             best_plane = plane
             best_point = point
             lowest = distance

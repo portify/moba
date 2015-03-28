@@ -1,3 +1,5 @@
+local util = require "shared.util"
+
 local player = {}
 player.__index = player
 setmetatable(player, entity)
@@ -85,8 +87,6 @@ function player:get_world_plane()
     return self.plane
 end
 
-local function lerp(t, a, b) return a + (b - a) * t end
-
 function player:update(dt)
     if self.path ~= nil then
         local a = self.path[#self.path]
@@ -103,8 +103,8 @@ function player:update(dt)
         self.path_progress = self.path_progress + dt * self.speed
         local t = math.min(1, self.path_progress / dist)
 
-        self.px = lerp(t, a[1], b[1])
-        self.py = lerp(t, a[2], b[2])
+        self.px = util.lerp(t, a[1], b[1])
+        self.py = util.lerp(t, a[2], b[2])
 
         if self.path_progress >= dist then
             self.path_progress = self.path_progress - dist
@@ -303,6 +303,9 @@ function player:use_ability(i, x, y)
         p.py = self.py + self.vy * 8
 
         add_entity(p)
+    elseif i == 3 then
+        local minion = entities.minion:new(x, y)
+        add_entity(minion)
     end
 end
 

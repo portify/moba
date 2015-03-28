@@ -1,5 +1,17 @@
 local util = {}
 
+function util.lerp(t, a, b)
+    return a + (b - a) * t
+end
+
+function util.dist2(x1, y1, x2, y2)
+    return (x2-x1)^2 + (y2-y1)^2
+end
+
+function util.dist(x1, y1, x2, y2)
+    return math.sqrt((x2-x1)^2 + (y2-y1)^2)
+end
+
 function util.point_into_triangle(triangle, wx, wy)
     local x0 = triangle[1][1]
     local x1 = triangle[2][1]

@@ -34,6 +34,14 @@ function love.load()
         world = world:new("maps/map.txt")
     }
 
+    function server:by_id(id)
+        if id == nil then
+            return nil
+        end
+
+        return self.entities[id]
+    end
+
     if server.host ~= nil then
         print("Listening on " .. address)
     else
