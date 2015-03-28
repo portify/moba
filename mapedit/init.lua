@@ -19,6 +19,14 @@ local status_time
 local menubar
 local current_message_box
 
+-- this is too hacky
+local is_explicit_quit = false
+
+local function explicit_quit()
+    is_explicit_quit = true
+    love.event.quit()
+end
+
 local function translate_mouse(x, y)
     return (x                      ) / zoom + view[1],
            (y - menubar:GetHeight()) / zoom + view[2]
@@ -72,7 +80,9 @@ local function message_box(title, text, action)
 
     local button = loveframes.Create("button", frame)
     button:SetText("OK")
-    button:SetPos(6 + 1, frame:GetHeight() - 6 - 1 - button:GetHeight())
+    button:SetPos(
+        frame:GetWidth()  - 6 - 1 - button:GetWidth(),
+        frame:GetHeight() - 6 - 1 - button:GetHeight())
 
     function button:OnClick()
         frame:Remove()
@@ -470,6 +480,13 @@ function love.load()
         {"Help", function (x, y)
         end}
     }
+end
+
+function love.quit()
+    if not is_explicit_quit then
+        check_dirty("exit", explicit_quit)
+        return true
+    end
 end
 
 function love.update(dt)
