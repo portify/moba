@@ -16,11 +16,11 @@ local status_text
 local status_time
 
 local function translate_mouse(x, y)
-    return (x / zoom     ) + view[1],
-           (y / zoom - 20) + view[2]
+    return (x     ) / zoom + view[1],
+           (y - 20) / zoom + view[2]
 end
 
-local function is_selected(vert, no_boxes_allowed)
+local function is_selected(vert)
     if box_select then
         local x1, y1 = box_select[1], box_select[2]
         local x2, y2 = translate_mouse(love.mouse.getPosition())
@@ -150,10 +150,13 @@ local function is_on_screen(x, y)
 end
 
 local function update_target()
-    local pos = {translate_mouse(love.mouse.getPosition())}
+    local x, y = translate_mouse(love.mouse.getPosition())
 
     for i, vert in pairs(vertices) do
-        if math.sqrt((vert[1]-pos[1])^2 + (vert[2]-pos[2])^2) <= 4 then
+        if
+            x >= vert[1] - 5 and y >= vert[2] - 5 and
+            x <  vert[1] + 5 and y <  vert[2] + 5
+        then
             target = {type = "vert", vert = vert}
             return
         end
@@ -164,13 +167,13 @@ local function update_target()
             local a = poly[i]
             local b = poly[(i % #poly) + 1]
 
-            if util.line_on_circle(a, b, pos, 5) then
+            if util.line_on_circle(a, b, {x, y}, 4) then
                 target = {type = "edge", poly = poly, edge = i, a = a, b = b}
                 return
             end
         end
 
-        if util.point_in_triangle(pos[1], pos[2], poly[1], poly[2], poly[3]) then
+        if util.point_in_triangle(x, y, poly[1], poly[2], poly[3]) then
             target = {type = "poly", poly = poly}
             return
         end
@@ -478,7 +481,7 @@ local function draw_menu()
     end
 end
 
-local function draw_status()
+local function draw_status(vertex_count)
     local width, height = love.graphics.getDimensions()
     local p = 4
     local h = 22
@@ -489,7 +492,8 @@ local function draw_status()
     if status_text == nil then
         textl =
             "FPS: " .. love.timer.getFPS() .. " | " ..
-            "Triangles: " .. #polygons
+            "Triangles: " .. #polygons .. " | " ..
+            "Vertices: " .. vertex_count .. (#selection > 0 and (" (" .. #selection .. " selected)") or "")
     else
         textl = status_text
     end
@@ -515,14 +519,9 @@ function love.draw()
         love.graphics.draw(image.instance, 0, 0)
     end
 
-    if love.keyboard.isDown("lalt") or love.keyboard.isDown("ralt") then
-        local x, y = translate_mouse(love.mouse.getPosition())
-        love.graphics.setColor(255, 255, 255)
-        love.graphics.circle("line", x, y, 16, 32)
-    end
-
-    love.graphics.setLineWidth(2)
-
+    -- Should definitely switch to a static surface that we only update when
+    -- the mesh is changed.
+    -- Set stuff up for drawing the mesh
     local cull_cache = {}
     local edge_cache = {}
 
@@ -533,14 +532,19 @@ function love.draw()
         return cull_cache[v]
     end
 
+    love.graphics.setLineWidth(1)
+    love.graphics.setPointStyle("rough")
+    love.graphics.setPointSize(10 * zoom)
+
+    -- Draw all polygons that have vertices within the screen
     for i, poly in ipairs(polygons) do
-        if vert_seen(poly[1]) and vert_seen(poly[2]) and vert_seen(poly[3]) then
+        if vert_seen(poly[1]) or vert_seen(poly[2]) or vert_seen(poly[3]) then
             if is_selected(poly[1]) and is_selected(poly[2]) and is_selected(poly[3]) then
-                love.graphics.setColor(50, 50, 255)
+                love.graphics.setColor( 50, 100, 200, 150)
             elseif target.type == "poly" and target.poly == poly then
-                love.graphics.setColor(50, 255, 50, 150)
+                love.graphics.setColor( 50, 200,  50, 150)
             else
-                love.graphics.setColor(255, 255, 255, 50)
+                love.graphics.setColor(255, 255, 255,  50)
             end
 
             love.graphics.polygon("fill",
@@ -548,29 +552,17 @@ function love.draw()
                 poly[2][1], poly[2][2],
                 poly[3][1], poly[3][2])
 
-            -- local tx, ty = util.center(poly)
-            -- local area2 = util.area2(poly)
-            --
-            -- if area2 >= 0 then
-            --     love.graphics.setColor(0, 255, 0)
-            -- else
-            --     love.graphics.setColor(255, 0, 0)
-            -- end
-
-            -- tx = tx - 100
-            -- ty = ty - 6
-            --
-            -- love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
-
+            -- Draw all edges of the polygon
+            -- This could be unrolled without too much verbosity, --
             for i=1, 3 do
                 local a = poly[i]
-                local b = poly[(i % #poly) + 1]
+                local b = poly[i % #poly + 1] -- it would be good for this
 
                 if not edge_cache[{a, b}] and not edge_cache[{b, a}] then
                     if is_selected(a) and is_selected(b) then
-                        love.graphics.setColor(50, 50, 255, 150)
+                        love.graphics.setColor( 50, 100, 200)
                     elseif target.type == "edge" and target.a == a and target.b == b or target.a == b and target.b == a then
-                        love.graphics.setColor(50, 255, 50, 150)
+                        love.graphics.setColor( 50, 200,  50)
                     else
                         love.graphics.setColor(255, 255, 255)
                     end
@@ -582,20 +574,26 @@ function love.draw()
         end
     end
 
+    local vertex_count = 0
+
+    -- Draw all vertices separately
     for i, vert in pairs(vertices) do
-        if vert_seen(vert) then
+        if vert_seen(vert) then -- Cull vertices to screen as well
             if is_selected(vert) then
-                love.graphics.setColor(50, 50, 255)
+                love.graphics.setColor( 50, 100, 200)
             elseif target.type == "vert" and target.vert == vert then
-                love.graphics.setColor(50, 255, 50)
+                love.graphics.setColor( 50, 200,  50)
             else
                 love.graphics.setColor(255, 255, 255)
             end
 
-            love.graphics.circle("fill", vert[1], vert[2], 4, 8)
+            love.graphics.point(vert[1], vert[2])
         end
+
+        vertex_count = vertex_count + 1
     end
 
+    -- Draw the (extremely ugly) vertex snapping guide
     if target.type == "vert" then
         local snap = util.find_nearby_vert(vertices, target.vert, 8)
 
@@ -606,6 +604,7 @@ function love.draw()
         end
     end
 
+    -- Draw the box we're currently selecting in
     if box_select then
         local x1, y1 = box_select[1], box_select[2]
         local x2, y2 = translate_mouse(love.mouse.getPosition())
@@ -621,10 +620,5 @@ function love.draw()
     -- Draw menu
     love.graphics.setFont(ui_font)
     draw_menu()
-    draw_status()
-    -- love.graphics.setColor(255, 255, 255)
-    -- love.graphics.printf(
-    --     #polygons .. " polygons, " .. #vertices .. " vertices\n" ..
-    --     "view: " .. view[1] .. ", " .. view[2],
-    --     16, 16, love.graphics.getWidth() - 32)
+    draw_status(vertex_count)
 end
