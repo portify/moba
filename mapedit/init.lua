@@ -158,6 +158,10 @@ local function new_map()
 end
 
 local function save_map(filename)
+    local path = love.path.normalslashes(filename)
+    path = path:sub(0, -#love.path.leaf(filename) - 1)
+    love.filesystem.createDirectory(path)
+
     data = ""
 
     if map.image ~= nil then
