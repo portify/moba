@@ -8,7 +8,7 @@
 -- Cupid Configuration
 -----------------------------------------------------
 
-local config = {
+local cconf = {
 
 	always_use = true,
 
@@ -133,23 +133,23 @@ local function cupid_load(args)
 			modules[what] = mod
 		end
 
-		if config.enable_console then
+		if cconf.enable_console then
 			load_modules("console")
 		end
 
-		if config.enable_watcher then
+		if cconf.enable_watcher then
 			load_modules("watcher")
 		end
 
-		if config.enable_remote then
+		if cconf.enable_remote then
 			load_modules("remote")
 		end
 
-		if config.enable_physics then
+		if cconf.enable_physics then
 			load_modules("physics")
 		end
 
-		if config.enable_temporal then
+		if cconf.enable_temporal then
 			load_modules("temporal")
 		end
 
@@ -168,7 +168,7 @@ local function cupid_print(str,color) print(str) end
 local cupid_commands
 cupid_commands = {
 	env = {
-		config = config,
+		cconf = cconf,
 		mode = function(...) g.setMode(...) end,
 		quit = function(...) love.event.quit() end,
 		dir = function(what, deep)
@@ -276,7 +276,7 @@ cupid_commands:add("reload", function(...) return cupid_reload(...) end)
 
 local cupid_font_data;
 local function cupid_font(size)
-	local ok, font = pcall(g.newFont,config.font,size)
+	local ok, font = pcall(g.newFont,cconf.font,size)
 	if ok then
 		return font
 	else
@@ -290,14 +290,14 @@ end
 
 mods.console = function() return {
 	buffer = "",
-	shown = config.console_start_open or false,
+	shown = cconf.console_start_open or false,
 	lastkey = "",
 	log = {},
 	history = {},
 	history_idx = 0,
 	lines = 12,
 	["init"] = function(self)
-		if config.console_override_print then
+		if cconf.console_override_print then
 			local _print = print
 			print = function(...)
 				local strings = {}
@@ -312,8 +312,8 @@ mods.console = function() return {
 	end,
 	["post-draw"] = function(self)
 		if not self.shown then return end
-		if self.height ~= g.getHeight() * config.console_height then
-			self.height = g.getHeight() * config.console_height
+		if self.height ~= g.getHeight() * cconf.console_height then
+			self.height = g.getHeight() * cconf.console_height
 			self.lineheight = self.height / self.lines
 			self.font = cupid_font(self.lineheight)
 		end
@@ -359,7 +359,7 @@ mods.console = function() return {
 		return false
 	end,
 	["pre-keyreleased"] = function(self, key)
-		if key == config.console_key then
+		if key == cconf.console_key then
 			self:toggle()
 			return false
          elseif key == "return" then
@@ -379,7 +379,7 @@ mods.console = function() return {
 	end,
 	["pre-textinput"] = function(self, text)
 		if not self.shown then return true end
-        if text ~= config.console_key then
+        if text ~= cconf.console_key then
            self.buffer = self.buffer .. text
         end
 		return false
@@ -393,7 +393,7 @@ mods.console = function() return {
 	end,
 	["toggle"] = function(self)
 		self.shown = not self.shown
-		if config.console_key_repeat then
+		if cconf.console_key_repeat then
 			if self.shown then
 				self.keyrepeat = love.keyboard.hasKeyRepeat()
 				love.keyboard.setKeyRepeat(true)
@@ -459,8 +459,8 @@ mods.error = function() return {
 			cupid_load_identity()
 			local ox = g.getWidth() * 0.1;
 			local oy = g.getWidth() * 0.1;
-			if self.height ~= g.getHeight() * config.console_height then
-				self.height = g.getHeight() * config.console_height
+			if self.height ~= g.getHeight() * cconf.console_height then
+				self.height = g.getHeight() * cconf.console_height
 				self.font = cupid_font(self.lineheight)
 			end
 			local hh = g.getHeight() / 20
@@ -512,15 +512,15 @@ mods.watcher = function() return {
 		if self.doupdate then
 			self.doupdate = self.doupdate - dt
 			if self.doupdate < 0 then
-				if config.watcher_onchanged then
-					cupid_commands:command(config.watcher_onchanged)
+				if cconf.watcher_onchanged then
+					cupid_commands:command(cconf.watcher_onchanged)
 				end
 				self.doupdate = nil
 			end
 		end
 		if self.lastscan ~= nil then
 			local now = love.timer.getTime()
-			if now - self.lastscan < config.watcher_interval then return end
+			if now - self.lastscan < cconf.watcher_interval then return end
 			local changed = false
 			local data = self:scan()
 			if self.files == nil then
@@ -554,9 +554,9 @@ mods.watcher = function() return {
 					scan(file .. "/")
 				else
 					local match = true
-					if config.watcher_patterns then
+					if cconf.watcher_patterns then
 						match = false
-						for k,v in pairs(config.watcher_patterns) do
+						for k,v in pairs(cconf.watcher_patterns) do
 							if file:match(v) then
 								match = true
 								break
@@ -598,7 +598,7 @@ mods.physics = function() return {
 		rawset(wraped_love, "physics", wraped_physics)
 	end,
 	["post-draw"] = function(self)
-		if not config.physics_show then return end
+		if not cconf.physics_show then return end
 		retaining("Color", function()
 			if self.world then
 				local c = 0

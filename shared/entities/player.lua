@@ -123,7 +123,7 @@ function player:update_camera(camera, dt, paused)
 end
 
 function player:draw()
-    if self.path ~= nil then
+    if config.debug_path and self.path ~= nil then
         love.graphics.setColor(255, 255, 255)
 
         local i = #self.path

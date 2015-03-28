@@ -192,25 +192,27 @@ function game:draw()
 
     self.camera:detach()
 
-    local count = 0
-    local control = self:get_control()
+    if config.debug_ents then
+        local count = 0
+        local control = self:get_control()
 
-    love.graphics.setFont(small_font)
+        love.graphics.setFont(small_font)
 
-    for id, ent in pairs(self.entities) do
-        if ent == control then
-            love.graphics.setColor(0, 255, 0)
-        else
-            love.graphics.setColor(255, 255, 255)
+        for id, ent in pairs(self.entities) do
+            if ent == control then
+                love.graphics.setColor(0, 255, 0)
+            else
+                love.graphics.setColor(255, 255, 255)
+            end
+
+            love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 28 + count * 10)
+            count = count + 1
         end
 
-        love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 28 + count * 10)
-        count = count + 1
+        love.graphics.setColor(0, 255, 255)
+        love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
+        love.graphics.print("------------------", 8, 18)
     end
-
-    love.graphics.setColor(0, 255, 255)
-    love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
-    love.graphics.print("------------------", 8, 18)
 end
 
 function game:mousemoved(x, y, dx, dy)

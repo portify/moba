@@ -119,14 +119,14 @@ function world:get_plane(x, y)
 end
 
 function world:draw()
-    love.graphics.setLineWidth(1)
-
     if self.image ~= nil then
         love.graphics.setColor(255, 255, 255)
         love.graphics.draw(self.image, 0, 0)
     end
 
-    if config.draw_nav_mesh then
+    if config.debug_nav then
+        love.graphics.setLineWidth(1)
+
         for i, plane in ipairs(self.mesh) do
             love.graphics.setColor(255, 255, 255, 25)
             plane:draw("fill")
@@ -135,18 +135,22 @@ function world:draw()
         end
     end
 
-    -- for i, plane in ipairs(self.mesh) do
-    --     for j=1, 3 do
-    --         local other = plane.planes[j]
-    --
-    --         if other ~= nil then
-    --             local c1 = {plane:center()}
-    --             local c2 = {other:center()}
-    --             love.graphics.setColor(0, 255, 0)
-    --             love.graphics.line(c1[1], c1[2], c2[1], c2[2])
-    --         end
-    --     end
-    -- end
+    if config.debug_nav_link then
+        love.graphics.setLineWidth(1)
+
+        for i, plane in ipairs(self.mesh) do
+            for j=1, 3 do
+                local other = plane.planes[j]
+
+                if other ~= nil then
+                    local c1 = {plane:center()}
+                    local c2 = {other:center()}
+                    love.graphics.setColor(0, 255, 0)
+                    love.graphics.line(c1[1], c1[2], c2[1], c2[2])
+                end
+            end
+        end
+    end
 end
 
 return world
