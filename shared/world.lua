@@ -4,7 +4,6 @@ local world = {}
 world.__index = world
 
 function world:new(filename)
-    print("world:new", filename)
     local new = setmetatable({}, self)
 
     new.filename = filename
@@ -43,11 +42,6 @@ function world:load()
         end
     end
 
-    print("  - " .. #vertices  .. " verts")
-    print("  - " .. #self.mesh .. " polys")
-
-    local n = 0
-
     -- Go through all polygons with all others and find shared edges
     -- Aaaaaaa this is so ugly
     for t, a in ipairs(self.mesh) do
@@ -69,8 +63,6 @@ function world:load()
 
                                     a.portal[b] = {left = a1, right = a2}
                                     b.portal[a] = {left = b1, right = b2}
-
-                                    n = n + 1
                                 end
                             end
                         end
@@ -79,8 +71,6 @@ function world:load()
             end
         end
     end
-
-    print("  - " .. n .. " shared edges")
 end
 
 function world:pack()

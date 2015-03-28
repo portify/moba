@@ -488,7 +488,7 @@ function newobject:mousepressed(x, y, button)
 	local parent = self.parent
 	local base = loveframes.base
 
-	local consumed = false
+	local consumed = loveframes.util.BoundingBox(x, self.x, y, self.y, 1, self.width, 1, self.height)
 
 	if button == "l" then
 		-- initiate dragging if not currently dragging
@@ -644,11 +644,11 @@ function newobject:mousepressed(x, y, button)
 	end
 
 	for k, v in ipairs(internals) do
-		consumed = consumed or v:mousepressed(x, y, button)
+		consumed = v:mousepressed(x, y, button) or consumed
 	end
 
 	for k, v in ipairs(children) do
-		consumed = consumed or v:mousepressed(x, y, button)
+		consumed = v:mousepressed(x, y, button) or consumed
 	end
 
 	return consumed

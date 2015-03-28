@@ -1,4 +1,7 @@
 local util = require "mapedit/util"
+local open_settings = require "mapedit/settings"
+
+local draw_status_bar = true
 
 local map
 local vertices, polygons
@@ -6,7 +9,7 @@ local mode, target
 local selection
 
 local dragging, drag_start_view, drag_start_user
-local has_moved_mouse
+local pressed = {}
 local view, zoom
 
 local box_select
@@ -53,6 +56,15 @@ local function become_dirty()
 end
 
 local function set_image(filename, clean)
+    if filename == "" then
+        if not clean and map.image then
+            become_dirty()
+        end
+
+        map.image = nil
+        return
+    end
+
     if not clean and (not map.image or map.image.filename ~= filename) then
         become_dirty()
     end
@@ -86,7 +98,7 @@ local function message_box(title, text, action)
 
     function button:OnClick()
         frame:Remove()
-        action()
+        if action then action() end
     end
 
     current_message_box = frame
@@ -118,7 +130,7 @@ local function new_map()
     love.window.setTitle("Untitled - mapedit")
 
     clear_map(true)
-    set_image("maps/map.jpg", true)
+    -- set_image("maps/map.jpg", true)
 
     local a = {64, 64}
     local b = {128, 64}
@@ -211,10 +223,10 @@ local function open_map(filename)
     return true
 end
 
-local function save_map_as()
+local function open_text_input(title, label, action)
     local frame = loveframes.Create("frame")
     frame:SetSize(300, 25 + 6 + 25 + 6 + 1)
-    frame:SetName("Save As...")
+    frame:SetName(title)
     frame:SetScreenLocked(1)
     frame:Center()
 
@@ -223,11 +235,11 @@ local function save_map_as()
     input:SetFocus(true)
 
     local button = loveframes.Create("button", frame)
-    button:SetText("Save")
+    button:SetText(label)
     button:SetPos(6 + 1 + input:GetWidth() + 6, 6 + 25)
 
     local function submit()
-        if save_map(input:GetText()) then
+        if action(input:GetText()) then
             frame:Remove()
         end
     end
@@ -236,29 +248,12 @@ local function save_map_as()
     button.OnClick = submit
 end
 
+local function save_map_as()
+    open_text_input("Save As...", "Save", save_map)
+end
+
 local function open_map_from()
-    local frame = loveframes.Create("frame")
-    frame:SetSize(300, 25 + 6 + 25 + 6 + 1)
-    frame:SetName("Open...")
-    frame:SetScreenLocked(1)
-    frame:Center()
-
-    local input = loveframes.Create("textinput", frame)
-    input:SetPos(6 + 1, 6 + 25)
-    input:SetFocus(true)
-
-    local button = loveframes.Create("button", frame)
-    button:SetText("Open")
-    button:SetPos(6 + 1 + input:GetWidth() + 6, 6 + 25)
-
-    local function submit()
-        if open_map(input:GetText()) then
-            frame:Remove()
-        end
-    end
-
-    input.OnEnter = submit
-    button.OnClick = submit
+    open_text_input("Open...", "Open", open_map)
 end
 
 local function set_view(x, y)
@@ -437,8 +432,10 @@ local function generate_menu_bar(entries)
         button:SetPos(offset, 0)
         button:SetText(entry[1])
 
-        function button:OnClick(x, y)
-            entry[2](self:GetX(), self:GetY() + self:GetHeight())
+        function button:OnClick()
+            local menu = loveframes.Create("menu")
+            menu:SetPos(self:GetX(), self:GetY() + self:GetHeight())
+            entry[2](menu)
         end
 
         height = math.max(height, button:GetHeight())
@@ -456,35 +453,137 @@ end
 
 function love.load()
     loveframes = require("lib.loveframes")
-    ui_font = love.graphics.newFont(12)
-    new_map()
+    loveframes.util.SetActiveSkin(config.ui_skin)
 
     menubar = generate_menu_bar {
-        {"File", function (x, y)
-            local menu = loveframes.Create("menu")
-            menu:SetPos(x, y)
-            menu:AddOption("New", false, function() check_dirty("create new map", new_map) end)
-            menu:AddOption("Open...", false, function() open_map_from() end)
+        {"File", function (menu)
+            -- Generate game map menu
+            local open_game = loveframes.Create("menu")
+            love.filesystem.getDirectoryItems("maps/", function (map)
+                if love.filesystem.isFile("maps/" .. map) and map:sub(-8) == ".textmap" then
+                    open_game:AddOption(map:sub(0, -9), false, function()
+                        check_dirty("open other map", function() open_map("maps/" .. map) end)
+                    end)
+                end
+            end)
+
+            menu:AddOption("New", "assets/icons/page_add.png", function() check_dirty("create new map", new_map) end)
+            menu:AddOption("Open...", "assets/icons/folder.png", function() check_dirty("open other map", open_map_from) end)
+            menu:AddSubMenu("Open game map ->", "assets/icons/folder_go.png", open_game)
             menu:AddDivider()
-            menu:AddOption("Save", false, function()
+            menu:AddOption("Save", "assets/icons/disk.png", function()
                 if map.filename == nil then
                     save_map_as()
                 else
                     save_map(map.filename)
                 end
             end)
-            menu:AddOption("Save as...", false, function() save_map_as() end)
+            menu:AddOption("Save as...", "assets/icons/disk_multiple.png", function() save_map_as() end)
             menu:AddDivider()
-            menu:AddOption("Exit", false, function() check_dirty("exit", love.event.quit) end)
+            menu:AddOption("Exit", "assets/icons/cross.png", function() check_dirty("exit", love.event.quit) end)
         end},
-        {"Help", function (x, y)
+        {"Edit", function (menu)
+            menu:AddOption("Undo (you wish)", "assets/icons/arrow_undo.png")
+            menu:AddOption("Redo (you wish)", "assets/icons/arrow_redo.png")
+            menu:AddDivider()
+            menu:AddOption("Deselect", "assets/icons/shape_square_delete.png", function()
+                selection = {}
+            end)
+            menu:AddOption("Select All", "assets/icons/shape_square.png", function()
+                selection = {}
+
+                for i, vert in pairs(vertices) do
+                    table.insert(selection, vert)
+                end
+            end)
+        end},
+        {"View", function (menu)
+            menu:AddOption("Toggle Status Bar", false, function()
+                draw_status_bar = not draw_status_bar
+            end)
+        end},
+        {"Tools", function (menu)
+            menu:AddOption("Set Background", "assets/icons/image.png", function()
+                open_text_input("Set Background", "Apply", function(filename)
+                    if filename == "" or love.filesystem.isFile(filename) then
+                        set_image(filename)
+                        return true
+                    else
+                        message_box("Error", "Cannot find file '" .. filename .. "' for background image")
+                        return false
+                    end
+                end)
+            end)
+            menu:AddOption("Delete Stray Triangles", "assets/icons/bug_link.png", function()
+                for t=#polygons, 1, -1 do
+                    local a = polygons[t]
+                    local shared = false
+
+                    for i=1, 3 do
+                        if shared then break end
+
+                        local a1 = a[i]
+                        local a2 = a[i % 3 + 1]
+
+                        for u, b in ipairs(polygons) do
+                            if shared then break end
+
+                            if t ~= u then
+                                for j=1, 3 do
+                                    local b1 = b[j]
+                                    local b2 = b[j % 3 + 1]
+
+                                    if (a1 == b2 and a2 == b1) or (a1 == b1 and a2 == b2) then
+                                        shared = true
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if not shared then
+                        table.remove(polygons, t)
+                        become_dirty()
+                    end
+                end
+
+                collectgarbage()
+            end)
+            menu:AddDivider()
+            menu:AddOption("Settings", "assets/icons/cog.png", open_settings)
+        end},
+        {"Help", function (menu)
+            menu:AddOption("Help", "assets/icons/help.png", function()
+                local window = loveframes.Create("frame")
+                window:SetName("Help")
+                window:SetScreenLocked(1)
+                window:Center()
+                local text = loveframes.Create("text", window)
+                text:SetPos(6 + 1, 6 + 25)
+                text:SetSize(window:GetWidth() - 2 - 12, window:GetHeight() - 26 - 12)
+                text:SetText("Drag from a lone face to extrude new triangle and grab last vertex, move vertex near other to snap. Single (ctrl+)click to select, delete to delete ALL polygons that use ANY of the selected vertices.")
+            end)
+            menu:AddOption("About", "assets/icons/information.png", function()
+                local window = loveframes.Create("frame")
+                window:SetName("About")
+                window:SetScreenLocked(1)
+                window:Center()
+                local text = loveframes.Create("text", window)
+                text:SetPos(6 + 1, 6 + 25)
+                text:SetSize(window:GetWidth() - 2 - 12, window:GetHeight() - 26 - 12)
+                text:SetText("This is the `moba` (really bad name) map editor, which is (just as bad) named `mapedit`. Very original. Regardless, it's a pretty cool map editor. Fun fact: You can open as many instances of this window as you want! Play around.")
+            end)
         end}
     }
+
+    ui_font = love.graphics.newFont(12)
+    new_map()
 end
 
 function love.quit()
     if not is_explicit_quit then
-        check_dirty("exit", explicit_quit)
+        check_dirty("quit", explicit_quit)
         return true
     end
 end
@@ -584,6 +683,8 @@ function love.mousepressed(x, y, button)
         return
     end
 
+    pressed[button] = true
+
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
 
@@ -615,9 +716,11 @@ function love.mousepressed(x, y, button)
 end
 
 function love.mousereleased(x, y, button)
-    if loveframes.mousereleased(x, y, button) then
+    if loveframes.mousereleased(x, y, button) or not pressed[button] then
         return
     end
+
+    pressed[button] = false
 
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
@@ -707,7 +810,7 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
 
-    if not love.mouse.isDown("l") then
+    if not pressed["l"] then
         update_target()
         return
     end
@@ -829,13 +932,13 @@ function love.draw()
     end
 
     love.graphics.pop()
-
-    -- Draw menu
     love.graphics.setFont(ui_font)
-    -- draw_menu()
-    draw_status(vertex_count)
 
-    if love.timer.getFPS() < 50 then
+    if draw_status_bar then
+        draw_status(vertex_count)
+    end
+
+    if config.enable_fps_warning and love.timer.getFPS() < 50 then
         love.graphics.setColor(255, 50, 50)
         love.graphics.print("FPS: " .. love.timer.getFPS(), 8, 28)
     end

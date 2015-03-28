@@ -15,7 +15,7 @@ local newobject = loveframes.NewObject("menu", "loveframes_object_menu", true)
 	- desc: initializes the object
 --]]---------------------------------------------------------
 function newobject:initialize(menu)
-	
+
 	self.type = "menu"
 	self.width = 80
 	self.height = 25
@@ -26,7 +26,7 @@ function newobject:initialize(menu)
 	self.parentmenu = nil
 	self.options = {}
 	self.internals = {}
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -34,36 +34,36 @@ end
 	- desc: updates the object
 --]]---------------------------------------------------------
 function newobject:update(dt)
-	
+
 	local state = loveframes.state
 	local selfstate = self.state
-	
+
 	if state ~= selfstate then
 		return
 	end
-	
+
 	local visible = self.visible
 	local alwaysupdate = self.alwaysupdate
-	
+
 	if not visible then
 		if not alwaysupdate then
 			return
 		end
 	end
-	
+
 	self:CheckHover()
-	
+
 	local hover = self.hover
 	local parent = self.parent
 	local base = loveframes.base
 	local update = self.Update
-	
+
 	-- move to parent if there is a parent
 	if parent ~= base then
 		self.x = self.parent.x + self.staticx
 		self.y = self.parent.y + self.staticy
 	end
-	
+
 	for k, v in ipairs(self.internals) do
 		local width = v.contentwidth
 		local height = v.contentheight
@@ -74,10 +74,10 @@ function newobject:update(dt)
 			self.largest_item_height = height
 		end
 	end
-	
+
 	local y = 0
 	self.height = 0
-	
+
 	for k, v in ipairs(self.internals) do
 		v:SetWidth(self.largest_item_width)
 		if v.option_type ~= "divider" then
@@ -90,11 +90,11 @@ function newobject:update(dt)
 		y = y + v.height
 		v:update(dt)
 	end
-	
+
 	self.width = self.largest_item_width
 	self.largest_item_width = 0
 	self.largest_item_height = 0
-	
+
 	local screen_width = love.graphics.getWidth()
 	local screen_height = love.graphics.getHeight()
 	local sx = self.x
@@ -108,7 +108,7 @@ function newobject:update(dt)
 	if sy + self.height > screen_height then
 		self.y = screen_height - self.height
 	end
-	
+
 	if update then
 		update(self, dt)
 	end
@@ -120,16 +120,16 @@ end
 	- desc: draws the object
 --]]---------------------------------------------------------
 function newobject:draw()
-	
+
 	local state = loveframes.state
 	local selfstate = self.state
-	
+
 	if state ~= selfstate then
 		return
 	end
-	
+
 	local visible = self.visible
-	
+
 	if not visible then
 		return
 	end
@@ -143,24 +143,24 @@ function newobject:draw()
 	local draw = self.Draw
 	local drawoverfunc = skin.DrawOverMenu or skins[defaultskin].DrawOverMenu
 	local drawcount = loveframes.drawcount
-	
+
 	-- set the object's draw order
 	self:SetDrawOrder()
-		
+
 	if draw then
 		draw(self)
 	else
 		drawfunc(self)
 	end
-	
+
 	for k, v in ipairs(self.internals) do
 		v:draw()
 	end
-	
+
 	if drawoverfunc then
 		drawoverfunc(self)
 	end
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -171,17 +171,19 @@ function newobject:mousepressed(x, y, button)
 
 	local state = loveframes.state
 	local selfstate = self.state
-	
+
 	if state ~= selfstate then
 		return
 	end
-	
+
 	local visible = self.visible
-	
+
 	if not visible then
 		return
 	end
-	
+
+	return loveframes.util.BoundingBox(x, self.x, y, self.y, 1, self.width, 1, self.height)
+
 end
 
 --[[---------------------------------------------------------
@@ -189,24 +191,27 @@ end
 	- desc: called when the player releases a mouse button
 --]]---------------------------------------------------------
 function newobject:mousereleased(x, y, button)
-	
+
 	local state = loveframes.state
 	local selfstate = self.state
-	
+
 	if state ~= selfstate then
 		return
 	end
-	
+
 	local visible = self.visible
-	
+
 	if not visible then
 		return
 	end
-	
+
+	local consumed = false
 	local internals = self.internals
 	for k, v in ipairs(internals) do
-		v:mousereleased(x, y, button)
+		consumed = v:mousereleased(x, y, button) or consumed
 	end
+
+	return consumed
 
 end
 
@@ -220,10 +225,10 @@ function newobject:AddOption(text, icon, func)
 	menuoption:SetText(text)
 	menuoption:SetIcon(icon)
 	menuoption:SetFunction(func)
-	
+
 	table.insert(self.internals, menuoption)
 	return self
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -238,9 +243,9 @@ function newobject:RemoveOption(id)
 			return
 		end
 	end
-	
+
 	return self
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -260,21 +265,21 @@ function newobject:AddSubMenu(text, icon, menu)
 			menu:SetPos(object:GetX() + object:GetWidth(), object:GetY())
 		end
 	end
-	
+
 	menu:SetVisible(false)
-	
+
 	local menuoption = loveframes.objects["menuoption"]:new(self, "submenu_activator", menu)
 	menuoption:SetText(text)
 	menuoption:SetIcon(icon)
-	
+
 	if menu then
 		menu.is_sub_menu = true
 		menu.parentmenu = self
 	end
-	
+
 	table.insert(self.internals, menuoption)
 	return self
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -284,10 +289,10 @@ end
 function newobject:AddDivider()
 
 	local menuoption = loveframes.objects["menuoption"]:new(self, "divider")
-	
+
 	table.insert(self.internals, menuoption)
 	return self
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -295,18 +300,18 @@ end
 	- desc: gets the object's base menu
 --]]---------------------------------------------------------
 function newobject:GetBaseMenu(t)
-	
+
 	local t = t or {}
-	
+
 	if self.parentmenu then
 		table.insert(t, self.parentmenu)
 		self.parentmenu:GetBaseMenu(t)
 	else
 		return self
 	end
-	
+
 	return t[#t]
-	
+
 end
 
 --[[---------------------------------------------------------
@@ -316,7 +321,7 @@ end
 function newobject:SetVisible(bool)
 
 	self.visible = bool
-	
+
 	if not bool then
 		local internals = self.internals
 		for k, v in ipairs(internals) do
@@ -326,7 +331,7 @@ function newobject:SetVisible(bool)
 			end
 		end
 	end
-	
+
 	return self
-	
+
 end

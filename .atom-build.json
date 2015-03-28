@@ -1,5 +1,5 @@
 {
-    "cmd": "test.bat",
+    "cmd": "local_game.bat",
     "sh": false,
     "cwd": "{PROJECT_PATH}"
 }

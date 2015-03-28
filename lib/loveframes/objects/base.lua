@@ -119,13 +119,13 @@ function newobject:mousepressed(x, y, button)
 
 	if children then
 		for k, v in ipairs(children) do
-			consumed = consumed or v:mousepressed(x, y, button)
+			consumed = v:mousepressed(x, y, button) or consumed
 		end
 	end
 
 	if internals then
 		for k, v in ipairs(internals) do
-			consumed = consumed or v:mousepressed(x, y, button)
+			consumed = v:mousepressed(x, y, button) or consumed
 		end
 	end
 
@@ -158,13 +158,13 @@ function newobject:mousereleased(x, y, button)
 
 	if children then
 		for k, v in ipairs(children) do
-			consumed = consumed or v:mousereleased(x, y, button)
+			consumed = v:mousereleased(x, y, button) or consumed
 		end
 	end
 
 	if internals then
 		for k, v in ipairs(internals) do
-			consumed = consumed or v:mousereleased(x, y, button)
+			consumed = v:mousereleased(x, y, button) or consumed
 		end
 	end
 
@@ -197,13 +197,13 @@ function newobject:keypressed(key, isrepeat)
 
 	if children then
 		for k, v in ipairs(children) do
-			consumed = consumed or v:keypressed(key, unicode)
+			consumed = v:keypressed(key, unicode) or consumed
 		end
 	end
 
 	if internals then
 		for k, v in ipairs(internals) do
-			consumed = consumed or v:keypressed(key, unicode)
+			consumed = v:keypressed(key, unicode) or consumed
 		end
 	end
 
@@ -236,13 +236,13 @@ function newobject:keyreleased(key)
 
 	if children then
 		for k, v in ipairs(children) do
-			consumed = consumed or v:keyreleased(key)
+			consumed = v:keyreleased(key) or consumed
 		end
 	end
 
 	if internals then
 		for k, v in ipairs(internals) do
-			consumed = consumed or v:keyreleased(key)
+			consumed = v:keyreleased(key) or consumed
 		end
 	end
 
@@ -255,7 +255,7 @@ end
 	- desc: called when the user inputs text
 --]]---------------------------------------------------------
 function newobject:textinput(text)
-	
+
 	local state = loveframes.state
 	local selfstate = self.state
 

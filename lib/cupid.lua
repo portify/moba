@@ -15,7 +15,7 @@ local cconf = {
 	enable_console = true,
 	console_key = '`',
 	console_override_print = true,
-	console_height = 0.33,
+	console_height = 0.4,
 	console_key_repeat = true,
 	console_start_open = false,
 
@@ -295,7 +295,7 @@ mods.console = function() return {
 	log = {},
 	history = {},
 	history_idx = 0,
-	lines = 18,
+	lines = 24,
 	["init"] = function(self)
 		if cconf.console_override_print then
 			local _print = print

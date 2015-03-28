@@ -20,7 +20,10 @@ local context
 
 if args.mapedit then
     context = "mapedit"
-    config = {}
+    config = {
+        enable_fps_warning = true,
+        ui_skin = "Blue"
+    }
 elseif args.server then
     context = "server"
 
@@ -29,7 +32,8 @@ elseif args.server then
         port = 6788,
         peer_count = 64,
         bandwidth_in = 0,
-        bandwidth_out = 0
+        bandwidth_out = 0,
+        startup_map = "default"
     }
 else
     context = "client"

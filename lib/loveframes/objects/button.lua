@@ -181,6 +181,8 @@ function newobject:mousereleased(x, y, button)
 	local enabled = self.enabled
 	local onclick = self.OnClick
 
+	local consumed = false
+
 	if hover and down and clickable and button == "l" then
 		if enabled then
 			if onclick then
@@ -194,11 +196,12 @@ function newobject:mousereleased(x, y, button)
 				end
 			end
 
-			return true
+			consumed = true
 		end
 	end
 
 	self.down = false
+	return consumed
 
 end
 
