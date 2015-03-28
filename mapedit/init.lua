@@ -17,6 +17,7 @@ local status_text
 local status_time
 
 local menubar
+local current_message_box
 
 local function translate_mouse(x, y)
     return (x                      ) / zoom + view[1],
@@ -36,18 +37,60 @@ local function is_selected(vert)
     return util.in_array(selection, vert)
 end
 
-local function set_image(filename)
+local function become_dirty()
+    if not map.dirty then
+        map.dirty = true
+        love.window.setTitle((map.filename or "Untitled") .. " * - mapedit")
+    end
+end
+
+local function set_image(filename, clean)
+    if not clean and (not map.image or map.image.filename ~= filename) then
+        become_dirty()
+    end
+
     map.image = {
         filename = filename,
         instance = love.graphics.newImage(filename)
     }
 end
 
-local function clear_map(skip_title)
-    if not skip_title then
-        love.window.setTitle("mapedit")
+local function message_box(title, text, action)
+    if current_message_box then
+        current_message_box:Remove()
     end
 
+    local frame = loveframes.Create("frame")
+    frame:SetName(title)
+    frame:SetScreenLocked(1)
+    frame:Center()
+
+    local label = loveframes.Create("text", frame)
+    label:SetPos(6 + 1, 6 + 25)
+    label:SetSize(frame:GetWidth() - 2 - 12, frame:GetHeight() - 26 - 12)
+    label:SetText(text)
+
+    local button = loveframes.Create("button", frame)
+    button:SetText("OK")
+    button:SetPos(6 + 1, frame:GetHeight() - 6 - 1 - button:GetHeight())
+
+    function button:OnClick()
+        frame:Remove()
+        action()
+    end
+
+    current_message_box = frame
+end
+
+local function check_dirty(text, action)
+    if map.dirty then
+        message_box("Confirm action", "Map '" .. (map.filename or "Untitled") .. "' has been modified. Discard changes and " .. text .. " anyway?", action)
+    else
+        action()
+    end
+end
+
+local function clear_map()
     map = {}
 
     view = {0, 0}
@@ -61,13 +104,11 @@ local function clear_map(skip_title)
     box_select = nil
 end
 
-local function reset_map(skip_title)
-    if not skip_title then
-        love.window.setTitle("Untitled - mapedit")
-    end
+local function new_map()
+    love.window.setTitle("Untitled - mapedit")
 
     clear_map(true)
-    set_image("maps/map.jpg")
+    set_image("maps/map.jpg", true)
 
     local a = {64, 64}
     local b = {128, 64}
@@ -110,22 +151,23 @@ local function save_map(filename)
 
     love.filesystem.write(filename, data)
     love.window.setTitle(filename .. " - mapedit")
+
     map.filename = filename
+    map.dirty = false
 
     status_text = "Saved map to '" .. filename .. "'..."
-    status_time = 1.5
+    status_time = 1
 
     return true
 end
 
 local function open_map(filename)
     if not love.filesystem.isFile(filename) then
-        return true
-        -- return false
-        -- open a message box with error message
+        message_box("Error", "Map file '" .. filename .. "' does not exist")
+        return false
     end
 
-    clear_map(true)
+    clear_map()
     local verts = {}
 
     for line in love.filesystem.lines(filename) do
@@ -149,10 +191,12 @@ local function open_map(filename)
     collectgarbage()
 
     love.window.setTitle(filename .. " - mapedit")
+
     map.filename = filename
+    map.dirty = false
 
     status_text = "Loaded map from '" .. filename .. "'..."
-    status_time = 1.5
+    status_time = 1
 
     return true
 end
@@ -260,40 +304,6 @@ local function update_target()
 
     target = {}
 end
-
--- local function draw_menu()
---     local width, height = love.graphics.getDimensions()
---
---     local bar_padding = 3
---     local bar_height = 20
---
---     local label_space = 6
---     local label_width = 64
---
---     local labels = {"File", "Edit", "Tools", "Help"}
---
---     love.graphics.setColor(240, 240, 240)
---     love.graphics.rectangle("fill", 0, 0, width, bar_height)
---     love.graphics.setColor(0, 0, 0)
---
---     local font = love.graphics.getFont()
---     local x = bar_padding
---
---     local mx, my = love.mouse.getPosition()
---
---     for i, label in ipairs(labels) do
---         local w = font:getWidth(label) + label_space * 2
---
---         if my < bar_height and mx >= x and mx < x + w then
---             love.graphics.setColor(0, 0, 0, 50)
---             love.graphics.rectangle("fill", x, 0, w, bar_height)
---             love.graphics.setColor(0, 0, 0)
---         end
---
---         love.graphics.print(label, x + label_space, bar_padding)
---         x = x + w
---     end
--- end
 
 local function draw_status(vertex_count)
     local width, height = love.graphics.getDimensions()
@@ -437,22 +447,13 @@ end
 function love.load()
     loveframes = require("lib.loveframes")
     ui_font = love.graphics.newFont(12)
-    reset_map()
-
-    -- local bar = loveframes.Create("panel")
-    -- local button = loveframes.Create("button", bar)
-    -- button:SetText("File")
-    -- -- button:SetPos(2, 2)
-    --
-    -- -- bar:SetSize(love.graphics.getWidth(), button:GetHeight() + 4)
-    -- bar:SetSize(love.graphics.getWidth(), button:GetHeight())
-    -- menubar = bar
+    new_map()
 
     menubar = generate_menu_bar {
         {"File", function (x, y)
             local menu = loveframes.Create("menu")
             menu:SetPos(x, y)
-            menu:AddOption("New", false, function() reset_map() end)
+            menu:AddOption("New", false, function() check_dirty("create new map", new_map) end)
             menu:AddOption("Open...", false, function() open_map_from() end)
             menu:AddDivider()
             menu:AddOption("Save", false, function()
@@ -464,29 +465,11 @@ function love.load()
             end)
             menu:AddOption("Save as...", false, function() save_map_as() end)
             menu:AddDivider()
-            menu:AddOption("Exit", false, love.event.quit)
+            menu:AddOption("Exit", false, function() check_dirty("exit", love.event.quit) end)
         end},
         {"Help", function (x, y)
         end}
     }
-
-    -- function button:OnClick(x, y)
-    --     local menu = loveframes.Create("menu")
-    --     menu:AddOption("New", false, function() reset_map() end)
-    --     menu:AddOption("Open...", false, function() open_map_from() end)
-    --     menu:AddDivider()
-    --     menu:AddOption("Save", false, function()
-    --         if map.filename == nil then
-    --             save_map_as()
-    --         else
-    --             save_map(map.filename)
-    --         end
-    --     end)
-    --     menu:AddOption("Save as...", false, function() save_map_as() end)
-    --     menu:AddDivider()
-    --     menu:AddOption("Exit", false, love.event.quit)
-    --     menu:SetPos(self:GetX(), self:GetY() + self:GetHeight())
-    -- end
 end
 
 function love.update(dt)
@@ -502,15 +485,21 @@ function love.update(dt)
 end
 
 function love.keypressed(key, unicode)
+    if loveframes.keypressed(key) then
+        return
+    end
+
     if love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then
-        if key == "s" then
+        if key == "n" then
+            check_dirty("create new map", new_map)
+        elseif key == "o" then
+            check_dirty("open other map", open_map_from)
+        elseif key == "s" then
             if map.filename == nil or love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then
                 save_map_as()
             else
                 save_map(map.filename)
             end
-        elseif key == "o" then
-            open_map_from()
         elseif key == "a" then
             selection = {}
 
@@ -530,6 +519,8 @@ function love.keypressed(key, unicode)
         if key == "escape" then
             selection = {}
         elseif key == "delete" and mode == nil then
+            local deleted = false
+
             for i=#polygons, 1, -1 do
                 local p = polygons[i]
 
@@ -537,6 +528,7 @@ function love.keypressed(key, unicode)
                 -- Deletes way too much
                 if is_selected(p[1]) or is_selected(p[2]) or is_selected(p[3]) then
                     table.remove(polygons, i)
+                    deleted = true
                 end
 
                 -- if is_selected(p[1]) then
@@ -552,6 +544,10 @@ function love.keypressed(key, unicode)
             target = {}
 
             collectgarbage()
+
+            if deleted then
+                become_dirty()
+            end
         end
     end
 
@@ -567,7 +563,9 @@ function love.textinput(text)
 end
 
 function love.mousepressed(x, y, button)
-    loveframes.mousepressed(x, y, button)
+    if loveframes.mousepressed(x, y, button) then
+        return
+    end
 
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
@@ -600,7 +598,9 @@ function love.mousepressed(x, y, button)
 end
 
 function love.mousereleased(x, y, button)
-    loveframes.mousereleased(x, y, button)
+    if loveframes.mousereleased(x, y, button) then
+        return
+    end
 
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
@@ -664,6 +664,7 @@ function love.mousereleased(x, y, button)
                     end
 
                     target = {}
+                    become_dirty()
                 end
             end
 
@@ -697,6 +698,7 @@ function love.mousemoved(x, y, dx, dy)
     if mode == nil then
         if target.type == "vert" then
             mode = "move-vertex"
+            become_dirty()
         elseif target.type == "edge" then
             local a = target.a
             local b = target.b
@@ -728,6 +730,7 @@ function love.mousemoved(x, y, dx, dy)
                 target.move_y = y - a[2]
 
                 mode = "move-edge"
+                become_dirty()
             else
                 -- Otherwise, extrapolate a new polygon from the edge
                 local c = {x, y}
@@ -742,12 +745,14 @@ function love.mousemoved(x, y, dx, dy)
                 }
 
                 mode = "move-vertex"
+                become_dirty()
             end
         elseif target.type == "poly" then
             target.move_x = x - target.poly[1][1]
             target.move_y = y - target.poly[1][2]
 
             mode = "move-poly"
+            become_dirty()
         end
     end
 

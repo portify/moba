@@ -151,6 +151,7 @@ function newobject:mousepressed(x, y, button)
 		end
 		self.down = true
 		loveframes.downobject = self
+		return true
 	end
 
 end
@@ -192,6 +193,8 @@ function newobject:mousereleased(x, y, button)
 					ontoggle(self, self.toggle)
 				end
 			end
+
+			return true
 		end
 	end
 

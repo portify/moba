@@ -23,7 +23,8 @@ loveframes.config["ACTIVESKIN"] = "Blue"
 loveframes.config["INDEXSKINIMAGES"] = true
 loveframes.config["DEBUG"] = false
 loveframes.config["ENABLE_SYSTEM_CURSORS"] = true
-loveframes.config["ENABLE_UTF8_SUPPORT"] = false
+-- loveframes.config["ENABLE_UTF8_SUPPORT"] = false
+loveframes.config["ENABLE_UTF8_SUPPORT"] = true
 
 -- misc library vars
 loveframes.state = "none"
@@ -205,7 +206,7 @@ end
 function loveframes.mousepressed(x, y, button)
 
 	local base = loveframes.base
-	base:mousepressed(x, y, button)
+	local consumed = base:mousepressed(x, y, button)
 
 	-- close open menus
 	local bchildren = base.children
@@ -217,13 +218,17 @@ function loveframes.mousepressed(x, y, button)
 			local htype = hoverobject.type
 			if otype == "menu" and visible and htype ~= "menu" and htype ~= "menuoption" then
 				v:SetVisible(false)
+				consumed = true
 			end
 		else
 			if otype == "menu" and visible then
 				v:SetVisible(false)
+				consumed = true
 			end
 		end
 	end
+
+	return consumed
 
 end
 
@@ -234,13 +239,15 @@ end
 function loveframes.mousereleased(x, y, button)
 
 	local base = loveframes.base
-	base:mousereleased(x, y, button)
+	local consumed = base:mousereleased(x, y, button)
 
 	-- reset the hover object
 	if button == "l" then
 		loveframes.downobject = false
 		loveframes.selectedobject = false
 	end
+
+	return consumed
 
 end
 
@@ -251,7 +258,7 @@ end
 function loveframes.keypressed(key, isrepeat)
 
 	local base = loveframes.base
-	base:keypressed(key, isrepeat)
+	return base:keypressed(key, isrepeat)
 
 end
 
@@ -262,7 +269,7 @@ end
 function loveframes.keyreleased(key)
 
 	local base = loveframes.base
-	base:keyreleased(key)
+	return base:keyreleased(key)
 
 end
 
@@ -273,7 +280,7 @@ end
 function loveframes.textinput(text)
 
 	local base = loveframes.base
-	base:textinput(text)
+	return base:textinput(text)
 
 end
 
