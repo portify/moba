@@ -241,18 +241,20 @@ function game:mousereleased(x, y, button)
 end
 
 function game:keypressed(key)
+    local abilities = {q=1, w=2, e=3, r=4}
+
     if key == "y" then
         self.camera_locked = not self.camera_locked
 
         if self.camera_locked then
             love.mouse.setRelativeMode(false)
         end
-    elseif key == "q" then
+    elseif abilities[key] ~= nil then
         local x, y = self.camera:mousepos()
 
         self.server:send(mp.pack{
             e = EVENT.USE_ABILITY,
-            i = 1,
+            i = abilities[key],
             x = x, y = y
         })
     end

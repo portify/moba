@@ -23,27 +23,43 @@ end
 
 function projectile:new()
     new = setmetatable({}, self)
-    new.time = 0
-    new.damage = 8
+
+    new.life = 0
+    new.speed = 0
+    new.radius = 0
+    new.damage = 0
+    new.vx = 0
+    new.vy = 0
 
     if is_client then
         new.emitter = projectile.emitter_type:clone()
         new.emitter:reset()
         new.emitter:start()
+    else
+        new.ignore = {}
     end
 
     return new
 end
 
-function projectile:pack()
-    return {self.px, self.py, self.vx, self.vy}
+function projectile:pack(initial)
+    if initial then
+        return {self.px, self.py, self.vx, self.vy, self.speed, self.target}
+    else
+        return {self.px, self.py}
+    end
 end
 
-function projectile:unpack(t)
+function projectile:unpack(t, initial)
     self.px = t[1]
     self.py = t[2]
-    self.vx = t[3]
-    self.vy = t[4]
+
+    if initial then
+        self.vx = t[3]
+        self.vy = t[4]
+        self.speed = t[5]
+        self.target = t[6]
+    end
 end
 
 function projectile:get_world_plane()
@@ -86,25 +102,49 @@ local function line_on_circle(a, b, c, r)
 end
 
 function projectile:update(dt)
-    if not is_client then
-        self.time = self.time + dt
+    if not is_client and self.life >= 0 then
+        self.life = self.life - dt
 
-        if self.time >= 3 then
+        if self.life <= 0 then
             remove_entity(self)
             return
         end
     end
 
     local a = {self.px, self.py}
+    local target
 
-    self.px = self.px + self.vx * dt
-    self.py = self.py + self.vy * dt
+    if self.target ~= nil then
+        if is_client then
+            target = states.game.entities[self.target]
+        else
+            target = server.entities[self.target]
+        end
+    end
+
+    if target ~= nil then
+        local dx = target.px - self.px
+        local dy = target.py - self.py
+        local d = math.sqrt(dx^2 + dy^2)
+        self.vx = dx / d
+        self.vy = dy / d
+    elseif not is_client and self.life < 0 then
+        remove_entity(self)
+        return
+    end
+
+    self.px = self.px + self.vx * self.speed * dt
+    self.py = self.py + self.vy * self.speed * dt
 
     local b = {self.px, self.py}
 
     if not is_client then
         for id, ent in pairs(server.entities) do
-            if getmetatable(ent) == entities.player and line_on_circle(a, b, {ent.px, ent.py}, 8) then
+            if
+                not self.ignore[ent] and
+                getmetatable(ent) == entities.player and
+                line_on_circle(a, b, {ent.px, ent.py}, self.radius)
+            then
                 ent:damage(self.damage)
                 remove_entity(self)
                 return

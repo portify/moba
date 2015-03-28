@@ -248,13 +248,56 @@ function player:use_ability(i, x, y)
     update_entity(self)
 
     if i == 1 then
-        local speed = 500
         local p = entities.projectile:new()
 
-        p.px = self.px + self.vx * 16
-        p.py = self.py + self.vy * 16
-        p.vx = self.vx * speed
-        p.vy = self.vy * speed
+        -- Try to target
+        for id, ent in pairs(server.entities) do
+            if ent ~= self and getmetatable(ent) == entities.player and
+                (ent.px-x)^2 + (ent.py-y)^2 <= 64
+            then
+                p.target = id
+                break
+            end
+        end
+
+        p.ignore[self] = true
+        p.life = 3
+        p.speed = 500
+        p.radius = 8
+        p.damage = 16
+        p.px = self.px + self.vx * 8
+        p.py = self.py + self.vy * 8
+        p.vx = self.vx
+        p.vy = self.vy
+
+        add_entity(p)
+    elseif i == 2 then
+        local target
+
+        -- Try to target
+        for id, ent in pairs(server.entities) do
+            if ent ~= self and getmetatable(ent) == entities.player and
+                (ent.px-x)^2 + (ent.py-y)^2 <= 64
+            then
+                target = id
+                break
+            end
+        end
+
+        if target == nil then
+            return
+        end
+
+        local p = entities.projectile:new()
+
+        p.ignore[self] = true
+        p.target = target
+        p.life = -1
+        p.speed = 200
+        p.radius = 8
+        p.damage = 8
+        p.px = self.px + self.vx * 8
+        p.py = self.py + self.vy * 8
 
         add_entity(p)
     end
