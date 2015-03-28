@@ -156,6 +156,7 @@ function player:draw()
 end
 
 local funnel = require "shared/funnel"
+local USE_FUNNEL = true
 
 function player:move_to(x, y)
     local world = self:get_world_instance()
@@ -183,16 +184,18 @@ function player:move_to(x, y)
             local planes = a:find_path(b)
 
             if planes ~= nil then
-                path = {}
-                funnel({self.px, self.py}, {x, y}, planes, path)
+                if USE_FUNNEL then
+                    path = {}
+                    funnel({self.px, self.py}, {x, y}, planes, path)
+                else
+                    path = {{x, y}}
 
-                -- path = {{data.x, data.y}}
-                --
-                -- for i, plane in ipairs(planes) do
-                --     table.insert(path, {plane:center()})
-                -- end
-                --
-                -- table.insert(path, {self.player.px, self.player.py})
+                    for i, plane in ipairs(planes) do
+                        table.insert(path, {plane:center()})
+                    end
+
+                    table.insert(path, {self.px, self.py})
+                end
             end
         end
 

@@ -15,9 +15,6 @@ function love.load()
     love.window.setMode(1280, 720)
     gamestate.registerEvents()
 
-    local info = debug.getinfo(love.update)
-    print("defined at " .. info.short_src .. ":" .. info.linedefined)
-
     if args.local_loop then
         gamestate.switch(states.connecting, "127.0.0.1:6788")
     else

@@ -22,7 +22,7 @@ local config = {
 	enable_remote = true,
 	font = "whitrabt.ttf",
 
-	enable_watcher = true,
+	enable_watcher = false,
 	watcher_interval = 1.0,
 	watcher_onchanged = "reload()",
 	watcher_patterns = {"lua$"},
@@ -43,9 +43,12 @@ local wraped_love = {}
 local game_funcs = {}
 local protected_funcs = {'update','draw','keyreleased','keypressed','textinput','load'}
 local _love
+function wraped_love.get_original_impl(f)
+	return game_funcs[f]
+end
 local function protector(table, key, value)
-	for i, v in ipairs(protected_funcs) do
-		if v == key then
+	for k,v in pairs(protected_funcs) do
+		if ( v == key ) then
 			game_funcs[key] = value
 			return
 		end
@@ -94,7 +97,6 @@ local function cupid_load(args)
 		love = wraped_love
 		for k,v in pairs(protected_funcs) do
             _love[v] = function(...)
-				print("cupid " .. v)
 				if g == nil then g = love.graphics end
 				local result = {}
 				local arg = {...}
@@ -545,28 +547,28 @@ mods.watcher = function() return {
 	["scan"] = function(self)
 		local out = {}
 		local function scan(where)
-			-- local list = love.filesystem.getDirectoryItems(where)
-			-- for k,v in pairs(list) do
-			-- 	local file = where .. v
-			-- 	if not love.filesystem.isFile(file) then
-			-- 		scan(file .. "/")
-			-- 	else
-			-- 		local match = true
-			-- 		if config.watcher_patterns then
-			-- 			match = false
-			-- 			for k,v in pairs(config.watcher_patterns) do
-			-- 				if file:match(v) then
-			-- 					match = true
-			-- 					break
-			-- 				end
-			-- 			end
-			-- 		end
-			-- 		if match then
-			-- 			local modtime, err = love.filesystem.getLastModified(file)
-			-- 			if modtime then out[v] = modtime else print(err, file) end
-			-- 		end
-			-- 	end
-			-- end
+			local list = love.filesystem.getDirectoryItems(where)
+			for k,v in pairs(list) do
+				local file = where .. v
+				if not love.filesystem.isFile(file) then
+					scan(file .. "/")
+				else
+					local match = true
+					if config.watcher_patterns then
+						match = false
+						for k,v in pairs(config.watcher_patterns) do
+							if file:match(v) then
+								match = true
+								break
+							end
+						end
+					end
+					if match then
+						local modtime, err = love.filesystem.getLastModified(file)
+						if modtime then out[v] = modtime else print(err, file) end
+					end
+				end
+			end
 		end
 		scan("/")
 		return out
@@ -649,13 +651,13 @@ mods.temporal  = function() return {
 -- All Done!  Have fun :)
 -----------------------------------------------------
 print('...')
--- if ( main_args[1] == "main" ) then
--- 	local ok, game = pcall(love.filesystem.load,'game.lua')
--- 	game(main_args)
--- 	love.main = cupid_load
--- else
+if ( main_args[1] == "main" ) then
+	local ok, game = pcall(love.filesystem.load,'game.lua')
+	game(main_args)
+	love.main = cupid_load
+else
 	cupid_load()
--- end
+end
 loaded = true
 
 
