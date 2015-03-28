@@ -78,7 +78,7 @@ function love.conf(t)
     t.console = not not args.server
 
     if args.mapedit then
-        t.window.title = "mapedit - moba"
+        t.window.title = "mapedit"
         t.window.width = 1280
         t.window.height = 720
         t.window.resizable = true
