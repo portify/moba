@@ -126,11 +126,13 @@ function world:draw()
         love.graphics.draw(self.image, 0, 0)
     end
 
-    for i, plane in ipairs(self.mesh) do
-        love.graphics.setColor(255, 255, 255, 25)
-        plane:draw("fill")
-        love.graphics.setColor(255, 255, 255, 50)
-        plane:draw("line")
+    if config.draw_nav_mesh then
+        for i, plane in ipairs(self.mesh) do
+            love.graphics.setColor(255, 255, 255, 25)
+            plane:draw("fill")
+            love.graphics.setColor(255, 255, 255, 50)
+            plane:draw("line")
+        end
     end
 
     -- for i, plane in ipairs(self.mesh) do
