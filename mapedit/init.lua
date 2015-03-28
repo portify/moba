@@ -45,7 +45,8 @@ local function is_selected(vert)
         end
     end
 
-    return util.in_array(selection, vert)
+    return selection[vert]
+    -- return util.in_array(selection, vert)
 end
 
 local function become_dirty()
@@ -246,14 +247,20 @@ local function open_text_input(title, label, action)
 
     input.OnEnter = submit
     button.OnClick = submit
+
+    return input
 end
 
 local function save_map_as()
-    open_text_input("Save As...", "Save", save_map)
+    local input = open_text_input("Save As...", "Save", save_map)
+    input:SetText("maps/.textmap")
+    input:MoveIndicator(5, true)
 end
 
 local function open_map_from()
-    open_text_input("Open...", "Open", open_map)
+    local input = open_text_input("Open...", "Open", open_map)
+    input:SetText("maps/.textmap")
+    input:MoveIndicator(5, true)
 end
 
 local function set_view(x, y)
@@ -275,6 +282,46 @@ local function is_on_screen(x, y)
         y >= view[2] - 8 * zoom and
         x < view[1] + love.graphics.getWidth()  / zoom + 8 * zoom and
         y < view[2] + love.graphics.getHeight() / zoom + 8 * zoom - 42
+end
+
+local function perform_delete(mode)
+    local deleted = false
+    local test
+
+    if mode == "vert" then
+        test = function(poly)
+            return selection[poly[1]] or selection[poly[2]] or selection[poly[3]]
+        end
+    elseif mode == "edge" then
+        test = function(poly)
+            return
+                (selection[poly[1]] and selection[poly[2]]) or
+                (selection[poly[2]] and selection[poly[3]]) or
+                (selection[poly[3]] and selection[poly[1]])
+        end
+    elseif mode == "poly" then
+        test = function(poly)
+            return selection[poly[1]] and selection[poly[2]] and selection[poly[3]]
+        end
+    else
+        error("unknown delete mode " .. mode)
+    end
+
+    for i=#polygons, 1, -1 do
+        if test(polygons[i]) then
+            table.remove(polygons, i)
+            deleted = true
+        end
+    end
+
+    selection = {}
+    target = {}
+
+    collectgarbage()
+
+    if deleted then
+        become_dirty()
+    end
 end
 
 local function update_target()
@@ -493,7 +540,8 @@ function love.load()
                 selection = {}
 
                 for i, vert in pairs(vertices) do
-                    table.insert(selection, vert)
+                    selection[vert] = true
+                    -- table.insert(selection, vert)
                 end
             end)
         end},
@@ -504,7 +552,7 @@ function love.load()
         end},
         {"Tools", function (menu)
             menu:AddOption("Set Background", "assets/icons/image.png", function()
-                open_text_input("Set Background", "Apply", function(filename)
+                local input = open_text_input("Set Background", "Apply", function(filename)
                     if filename == "" or love.filesystem.isFile(filename) then
                         set_image(filename)
                         return true
@@ -620,7 +668,7 @@ function love.keypressed(key, unicode)
             selection = {}
 
             for i, vert in pairs(vertices) do
-                table.insert(selection, vert)
+                selection[vert] = true
             end
         elseif key == "d" then
             selection = {}
@@ -635,34 +683,25 @@ function love.keypressed(key, unicode)
         if key == "escape" then
             selection = {}
         elseif key == "delete" and mode == nil then
-            local deleted = false
+            local count = 0
 
-            for i=#polygons, 1, -1 do
-                local p = polygons[i]
-
-                -- This is pretty bad
-                -- Deletes way too much
-                if is_selected(p[1]) or is_selected(p[2]) or is_selected(p[3]) then
-                    table.remove(polygons, i)
-                    deleted = true
-                end
-
-                -- if is_selected(p[1]) then
-                --     if is_selected(p[2]) or is_selected(p[3]) then
-                --         table.remove(polygons, i)
-                --     end
-                -- elseif is_selected(p[2]) and is_selected(p[3]) then
-                --     table.remove(polygons, i)
-                -- end
+            for vert, yes in pairs(selection) do
+                count = count + 1
+                if count == 3 then break end
             end
 
-            selection = {}
-            target = {}
-
-            collectgarbage()
-
-            if deleted then
-                become_dirty()
+            if count == 2 then
+                perform_delete("edge")
+            else
+                perform_delete("vert")
+            end
+        elseif (love.keyboard.isDown("lalt") or love.keyboard.isDown("ralt")) and mode == nil then
+            if key == "q" then
+                perform_delete("poly")
+            elseif key == "w" then
+                perform_delete("edge")
+            elseif key == "e" then
+                perform_delete("vert")
             end
         end
     end
@@ -743,7 +782,7 @@ function love.mousereleased(x, y, button)
 
             for i, vert in pairs(vertices) do
                 if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
-                    table.insert(selection, vert)
+                    selection[vert] = true
                 end
             end
 
@@ -753,14 +792,14 @@ function love.mousereleased(x, y, button)
 
         if mode == nil then
             if target.type == "vert" then
-                table.insert(selection, target.vert)
+                selection[target.vert] = true
             elseif target.type == "edge" then
-                table.insert(selection, target.a)
-                table.insert(selection, target.b)
+                selection[target.a] = true
+                selection[target.b] = true
             elseif target.type == "poly" then
-                table.insert(selection, target.poly[1])
-                table.insert(selection, target.poly[2])
-                table.insert(selection, target.poly[3])
+                selection[target.poly[1]] = true
+                selection[target.poly[2]] = true
+                selection[target.poly[3]] = true
             end
         elseif mode == "move-vertex" then
             target.vert[1] = x
