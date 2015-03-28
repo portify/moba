@@ -12,7 +12,6 @@ states = {
 }
 
 function love.load()
-    love.window.setMode(1280, 720)
     gamestate.registerEvents()
 
     if args.local_loop then

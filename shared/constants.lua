@@ -6,7 +6,8 @@ PROTOCOL_VERSION = 0
 DISCONNECT = enum {
     "EXITING",
     "INCOMPATIBLE",
-    "INVALID_PACKET"
+    "INVALID_PACKET",
+    "NAME"
 }
 
 EVENT = enum {

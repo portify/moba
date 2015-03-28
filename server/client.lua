@@ -1,9 +1,10 @@
 local client = {}
 client.__index = client
 
-function client:new(peer)
+function client:new(peer, name)
     return setmetatable({
         peer = peer,
+        name = name,
         control = setmetatable({}, {__mode = "kv"})
     }, self)
 end
@@ -48,7 +49,7 @@ function client:connected()
 
         data[id] = {
             t = id_from_entity(getmetatable(ent)),
-            d = ent:pack()
+            d = ent:pack(true)
         }
     end
 
@@ -64,7 +65,7 @@ function client:spawn()
         self.player = remove_entity(self.player)
     end
 
-    self.player = entities.player:new()
+    self.player = entities.player:new(self.name)
     self.player.client = self
 
     add_entity(self.player)
@@ -89,21 +90,6 @@ function client:received(data)
     if data.e == EVENT.MOVE_TO then
         if self.player ~= nil then
             self.player:move_to(data.x, data.y)
-            -- self.player.x = data.x
-            -- self.player.y = data.y
-
-            -- if self.player.path == nil then
-            --     self.player.path = {
-            --         {data.x, data.y},
-            --         {self.player.px, self.player.py}
-            --     }
-            --
-            --     self.player.path_progress = 0
-            -- else
-            --     table.insert(self.player.path, 1, {data.x, data.y})
-            -- end
-
-
         end
     elseif data.e == EVENT.USE_ABILITY then
         if self.player ~= nil then

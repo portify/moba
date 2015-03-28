@@ -86,7 +86,7 @@ function game:update(dt)
                     self.entities[id] = ent
                     ent.__id = id
                     ent:added()
-                    ent:unpack(params.d)
+                    ent:unpack(params.d, true)
                 end
             elseif data.e == EVENT.ENTITY_REMOVE then
                 for i, id in ipairs(data) do
@@ -100,7 +100,7 @@ function game:update(dt)
                 data.e = nil
 
                 for id, packed in pairs(data) do
-                    self.entities[id]:unpack(packed)
+                    self.entities[id]:unpack(packed, false)
                 end
             elseif data.e == EVENT.ENTITY_CONTROL then
                 self.control.value = self.entities[data.i]

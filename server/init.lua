@@ -20,14 +20,6 @@ local world = require("shared/world")
 
 require "shared/entities"
 
-config = {
-    public = true,
-    port = 6788,
-    peer_count = 64,
-    bandwidth_in = 0,
-    bandwidth_out = 0
-}
-
 function love.load()
     local address = (config.public and "*:" or "localhost:") .. config.port
 
@@ -82,8 +74,10 @@ function love.update(dt)
             if server.clients[index] == nil then
                 if data.version ~= PROTOCOL_VERSION then
                     event.peer:disconnect(DISCONNECT.INCOMPATIBLE)
+                elseif data.name == "" or #data.name > 60 then
+                    event.peer:disconnect(DISCONNECT.NAME)
                 else
-                    server.clients[index] = client:new(event.peer)
+                    server.clients[index] = client:new(event.peer, data.name)
                     server.clients[index]:connected()
                 end
             else
@@ -124,7 +118,7 @@ function add_entity(ent)
             e = EVENT.ENTITY_ADD,
             [ent.__id] = {
                 t = id_from_entity(getmetatable(ent)),
-                d = ent:pack()
+                d = ent:pack(true)
             }
         })
     end
@@ -152,7 +146,7 @@ function update_entity(ent)
     for i, cl in pairs(server.clients) do
         cl:send({
             e = EVENT.ENTITY_UPDATE,
-            [ent.__id] = ent:pack()
+            [ent.__id] = ent:pack(false)
         })
     end
 end

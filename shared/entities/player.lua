@@ -2,10 +2,11 @@ local player = {}
 player.__index = player
 setmetatable(player, entity)
 
-function player:new()
+function player:new(name)
     new = setmetatable({}, self)
     local sx, sy = self:get_world_instance().mesh[1]:center()
 
+    new.name = name
     new.px = sx
     new.py = sy
     new.vx = 1
@@ -16,28 +17,50 @@ function player:new()
     if is_client then
         new.camera_lock = false
         new._debug_font = get_resource(love.graphics.newFont, 8)
+        new._name_font = get_resource(love.graphics.newFont, 14)
     end
 
     return new
 end
 
-function player:pack()
-    return {
-        self.px, self.py,
-        self.vx, self.vy,
-        self.path, self.path_progress,
-        self.health
-    }
+function player:pack(initial)
+    if initial then
+        return {
+            self.name,
+            self.px, self.py,
+            self.vx, self.vy,
+            self.path, self.path_progress,
+            self.health
+        }
+    else
+        return {
+            self.px, self.py,
+            self.vx, self.vy,
+            self.path, self.path_progress,
+            self.health
+        }
+    end
 end
 
-function player:unpack(t)
-    self.px = t[1]
-    self.py = t[2]
-    self.vx = t[3]
-    self.vy = t[4]
-    self.path = t[5]
-    self.path_progress = t[6]
-    self.health = t[7]
+function player:unpack(t, initial)
+    if initial then
+        self.name = t[1]
+        self.px = t[2]
+        self.py = t[3]
+        self.vx = t[4]
+        self.vy = t[5]
+        self.path = t[6]
+        self.path_progress = t[7]
+        self.health = t[8]
+    else
+        self.px = t[1]
+        self.py = t[2]
+        self.vx = t[3]
+        self.vy = t[4]
+        self.path = t[5]
+        self.path_progress = t[6]
+        self.health = t[7]
+    end
 end
 
 function player:damage(hp)
@@ -153,6 +176,11 @@ function player:draw()
     love.graphics.rectangle("line",
         self.px - width / 2, self.py - 4 - spacing - height,
         width, height)
+
+    if self.name ~= nil then
+        love.graphics.setFont(self._name_font)
+        love.graphics.printf(self.name, self.px - 200, self.py - 4 - spacing - height - 14 - 8, 400, "center")
+    end
 end
 
 local funnel = require "shared/funnel"

@@ -14,6 +14,59 @@ do
     end
 end
 
+-- Figure out our context and setup config
+local serialize = require "lib/ser"
+local context
+
+if args.mapedit then
+    context = "mapedit"
+    config = {}
+elseif args.server then
+    context = "server"
+
+    config = {
+        public = true,
+        port = 6788,
+        peer_count = 64,
+        bandwidth_in = 0,
+        bandwidth_out = 0
+    }
+else
+    context = "client"
+    is_client = true
+
+    config = {
+        window = {
+            width = 1280,
+            height = 720,
+            fullscreen = false,
+            vsync = true,
+            fsaa = 0
+        },
+        name = "Poser"
+    }
+end
+
+local config_file = "config-" .. context .. ".lua"
+
+if love.filesystem.isFile(config_file) then
+    -- FIXME: This doesn't handle recursive structures!
+    local function patch(t, target)
+        for key, value in pairs(t) do
+            if type(value) == "table" and type(target[key]) == "table" then
+                patch(value, target[key])
+            else
+                target[key] = value
+            end
+        end
+    end
+
+    local user = love.filesystem.load(config_file)()
+    patch(user, config)
+end
+
+love.filesystem.write(config_file, serialize(config))
+
 if not args.server then
     require "lib/cupid"
 end
@@ -24,16 +77,15 @@ function love.conf(t)
     t.console = not not args.server
 
     if args.mapedit then
+        t.window.title = "mapedit - moba"
         t.window.width = 1280
         t.window.height = 720
         t.window.resizable = true
         t.window.minwidth = 640
         t.window.minheight = 480
-    else
+    elseif args.server then
         t.window = nil
-    end
 
-    if not args.mapedit and args.server then
         t.modules.audio    = false
         t.modules.font     = false
         t.modules.graphics = false
@@ -44,5 +96,13 @@ function love.conf(t)
         t.modules.physics  = false
         t.modules.sound    = false
         t.modules.window   = false
+    else
+        t.window.title = "moba"
+        t.window.width = config.window.width
+        t.window.height = config.window.height
+        t.window.fullscreen = config.window.fullscreen
+        t.window.fullscreentype = "desktop"
+        t.window.vsync = config.window.vsync
+        t.window.fsaa = config.window.fsaa
     end
 end

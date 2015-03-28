@@ -50,7 +50,8 @@ function connecting:update(dt)
             self.status = "Handshaking"
 
             self.server:send(mp.pack({
-                version = PROTOCOL_VERSION
+                version = PROTOCOL_VERSION,
+                name = config.name
             }))
         elseif event.type == "disconnect" then
             local reason = DISCONNECT(event.data)
