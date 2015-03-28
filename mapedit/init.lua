@@ -16,8 +16,8 @@ local status_text
 local status_time
 
 local function translate_mouse(x, y)
-    return x / zoom + view[1],
-           y / zoom + view[2] - 20
+    return (x / zoom     ) + view[1],
+           (y / zoom - 20) + view[2]
 end
 
 local function is_selected(vert, no_boxes_allowed)
@@ -131,9 +131,22 @@ local function load_map(filename)
     status_time = 2
 end
 
+local function set_view(x, y)
+    view[1] = math.max(0, math.min(image.instance:getWidth()  - (love.graphics.getWidth()  / zoom     ), x))
+    view[2] = math.max(0, math.min(image.instance:getHeight() - (love.graphics.getHeight() / zoom - 42), y))
+end
+
 function love.load()
     ui_font = love.graphics.newFont(12)
     reset_map()
+end
+
+local function is_on_screen(x, y)
+    return
+        x >= view[1] - 8 * zoom and
+        y >= view[2] - 8 * zoom and
+        x < view[1] + love.graphics.getWidth()  / zoom + 8 * zoom and
+        y < view[2] + love.graphics.getHeight() / zoom + 8 * zoom - 42
 end
 
 local function update_target()
@@ -245,12 +258,16 @@ function love.mousepressed(x, y, button)
         local old = zoom
         zoom = math.min(4, zoom + 0.25)
         local new = zoom
+
         -- zoom into cursor
+        set_view(view[1] + 0, view[2] + 0)
     elseif button == "wd" then
         local old = zoom
         zoom = math.max(0.25, zoom - 0.25)
         local new = zoom
+
         -- zoom out of cursor
+        set_view(view[1] + 0, view[2] + 0)
     end
 end
 
@@ -332,8 +349,10 @@ function love.mousemoved(x, y, dx, dy)
     x, y = translate_mouse(x, y)
 
     if love.mouse.getRelativeMode() then
-        view[1] = view[1] - dx / zoom
-        view[2] = view[2] - dy / zoom
+        set_view(
+            view[1] - dx * 1.5 / zoom,
+            view[2] - dy * 1.5 / zoom
+        )
     end
 
     if mode == nil then
@@ -476,7 +495,7 @@ local function draw_status()
     end
 
     local mx, my = translate_mouse(love.mouse.getPosition())
-    local textr = mx .. ", " .. my .. " (" .. zoom .. "x)"
+    local textr = math.floor(mx) .. ", " .. math.floor(my) .. " (" .. zoom .. "x)"
 
     love.graphics.setColor(240, 240, 240)
     love.graphics.rectangle("fill", 0, height - h, width, h)
@@ -487,75 +506,94 @@ end
 
 function love.draw()
     love.graphics.push()
+    love.graphics.translate(0, 20)
     love.graphics.scale(zoom)
-    love.graphics.translate(-view[1], -view[2] + 20)
+    love.graphics.translate(-view[1], -view[2])
 
     if image.instance ~= nil then
         love.graphics.setColor(255, 255, 255)
         love.graphics.draw(image.instance, 0, 0)
     end
 
+    if love.keyboard.isDown("lalt") or love.keyboard.isDown("ralt") then
+        local x, y = translate_mouse(love.mouse.getPosition())
+        love.graphics.setColor(255, 255, 255)
+        love.graphics.circle("line", x, y, 16, 32)
+    end
+
     love.graphics.setLineWidth(2)
 
+    local cull_cache = {}
     local edge_cache = {}
 
-    for i, poly in ipairs(polygons) do
-        if is_selected(poly[1]) and is_selected(poly[2]) and is_selected(poly[3]) then
-            love.graphics.setColor(50, 50, 255)
-        elseif target.type == "poly" and target.poly == poly then
-            love.graphics.setColor(50, 255, 50, 150)
-        else
-            love.graphics.setColor(255, 255, 255, 50)
+    local function vert_seen(v)
+        if cull_cache[v] == nil then
+            cull_cache[v] = is_on_screen(v[1], v[2])
         end
+        return cull_cache[v]
+    end
 
-        love.graphics.polygon("fill",
-            poly[1][1], poly[1][2],
-            poly[2][1], poly[2][2],
-            poly[3][1], poly[3][2])
+    for i, poly in ipairs(polygons) do
+        if vert_seen(poly[1]) and vert_seen(poly[2]) and vert_seen(poly[3]) then
+            if is_selected(poly[1]) and is_selected(poly[2]) and is_selected(poly[3]) then
+                love.graphics.setColor(50, 50, 255)
+            elseif target.type == "poly" and target.poly == poly then
+                love.graphics.setColor(50, 255, 50, 150)
+            else
+                love.graphics.setColor(255, 255, 255, 50)
+            end
 
-        -- local tx, ty = util.center(poly)
-        -- local area2 = util.area2(poly)
-        --
-        -- if area2 >= 0 then
-        --     love.graphics.setColor(0, 255, 0)
-        -- else
-        --     love.graphics.setColor(255, 0, 0)
-        -- end
+            love.graphics.polygon("fill",
+                poly[1][1], poly[1][2],
+                poly[2][1], poly[2][2],
+                poly[3][1], poly[3][2])
 
-        -- tx = tx - 100
-        -- ty = ty - 6
-        --
-        -- love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
+            -- local tx, ty = util.center(poly)
+            -- local area2 = util.area2(poly)
+            --
+            -- if area2 >= 0 then
+            --     love.graphics.setColor(0, 255, 0)
+            -- else
+            --     love.graphics.setColor(255, 0, 0)
+            -- end
 
-        for i=1, #poly do
-            local a = poly[i]
-            local b = poly[(i % #poly) + 1]
+            -- tx = tx - 100
+            -- ty = ty - 6
+            --
+            -- love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
 
-            if not edge_cache[{a, b}] and not edge_cache[{b, a}] then
-                if is_selected(a) and is_selected(b) then
-                    love.graphics.setColor(50, 50, 255, 150)
-                elseif target.type == "edge" and target.a == a and target.b == b or target.a == b and target.b == a then
-                    love.graphics.setColor(50, 255, 50, 150)
-                else
-                    love.graphics.setColor(255, 255, 255)
+            for i=1, 3 do
+                local a = poly[i]
+                local b = poly[(i % #poly) + 1]
+
+                if not edge_cache[{a, b}] and not edge_cache[{b, a}] then
+                    if is_selected(a) and is_selected(b) then
+                        love.graphics.setColor(50, 50, 255, 150)
+                    elseif target.type == "edge" and target.a == a and target.b == b or target.a == b and target.b == a then
+                        love.graphics.setColor(50, 255, 50, 150)
+                    else
+                        love.graphics.setColor(255, 255, 255)
+                    end
+
+                    love.graphics.line(a[1], a[2], b[1], b[2])
+                    edge_cache[{a, b}] = true
                 end
-
-                love.graphics.line(a[1], a[2], b[1], b[2])
-                edge_cache[{a, b}] = true
             end
         end
     end
 
     for i, vert in pairs(vertices) do
-        if is_selected(vert) then
-            love.graphics.setColor(50, 50, 255)
-        elseif target.type == "vert" and target.vert == vert then
-            love.graphics.setColor(50, 255, 50)
-        else
-            love.graphics.setColor(255, 255, 255)
-        end
+        if vert_seen(vert) then
+            if is_selected(vert) then
+                love.graphics.setColor(50, 50, 255)
+            elseif target.type == "vert" and target.vert == vert then
+                love.graphics.setColor(50, 255, 50)
+            else
+                love.graphics.setColor(255, 255, 255)
+            end
 
-        love.graphics.circle("fill", vert[1], vert[2], 4, 8)
+            love.graphics.circle("fill", vert[1], vert[2], 4, 8)
+        end
     end
 
     if target.type == "vert" then
