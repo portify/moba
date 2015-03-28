@@ -43,10 +43,12 @@ end
 function player:damage(hp)
     self.health = self.health - hp
 
-    if self.health <= 0 and not is_client then
+    if self.health <= 0 then
         self.client.player = nil
         delay(1, function() self.client:spawn() end)
         remove_entity(self)
+    else
+        update_entity(self)
     end
 end
 
@@ -122,7 +124,7 @@ function player:draw()
     --
     -- love.graphics.setColor(255, 255, 255)
     -- love.graphics.setLineWidth(2)
-    -- love.graphics.line(self.px, self.py, self.px + self.vx * 40, self.py + self.vy * 40)
+    -- love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
 
     love.graphics.setColor(80, 80, 80)
     love.graphics.circle("fill", self.px, self.py, 8)

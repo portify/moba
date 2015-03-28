@@ -80,10 +80,16 @@ function GS.registerEvents(callbacks)
 	callbacks = callbacks or all_callbacks
 	for _, f in ipairs(callbacks) do
 		registry[f] = love[f] or __NULL__
-		love[f] = function(...)
-			registry[f](...)
-			return GS[f](...)
-		end
+		-- love[f] = function(...)
+		-- 	registry[f](...)
+		-- 	return GS[f](...)
+		-- end
+		rawset(love, f, function() print("hello!!!") end)
+		-- rawset(love, f, function(...)
+		-- 	print("GS " .. f)
+		-- 	registry[f](...)
+		-- 	return GS[f](...)
+		-- end)
 	end
 end
 

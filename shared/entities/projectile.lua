@@ -77,8 +77,8 @@ function projectile:update(dt)
     local b = {self.px, self.py}
 
     if not is_client then
-        for id, ent in ipairs(server.entities) do
-            if getmetatable(ent) == entities.player and line_on_circle(a, b, {ent.px, ent.py}, 8) then
+        for id, ent in pairs(server.entities) do
+            if getmetatable(ent) == entities.player and line_on_circle(a, b, {ent.px, ent.py}, 4) then
                 ent:damage(self.damage)
                 remove_entity(self)
                 return

@@ -120,7 +120,7 @@ function client:received(data)
 
                 if a == nil then
                     path = {
-                        {b:center()},
+                        {data.x, data.y},
                         {self.player.px, self.player.py}
                     }
                 else
@@ -154,8 +154,8 @@ function client:received(data)
         if data.i == 1 then
             local speed = 300
             local p = entities.projectile:new()
-            p.px = self.player.px + self.player.vx * 4
-            p.py = self.player.py + self.player.vy * 4
+            p.px = self.player.px + self.player.vx * 8
+            p.py = self.player.py + self.player.vy * 8
             p.vx = self.player.vx * speed
             p.vy = self.player.vy * speed
             add_entity(p)

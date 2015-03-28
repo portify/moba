@@ -149,7 +149,7 @@ function game:update(dt)
 
     if control ~= nil and self.camera_locked then
         control:update_camera(self.camera, dt)
-    elseif not paused and not love.mouse.getRelativeMode() then
+    elseif not paused and not love.mouse.getRelativeMode() and love.window.hasMouseFocus() then
         local mx, my = love.mouse.getPosition()
         local speed = 750
 

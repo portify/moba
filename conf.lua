@@ -14,6 +14,16 @@ do
     end
 end
 
+-- debug.sethook(function(event, line)
+--     local info = debug.getinfo(2, "n")
+--     print(info.short_src .. ":" .. info.linedefined)
+--     -- print(event, info.source .. ":" .. info.linedefined)
+-- end, "c")
+
+if not args.server then
+    -- require "lib/cupid"
+end
+
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"

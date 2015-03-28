@@ -190,12 +190,12 @@ function love.keypressed(key)
             end
         elseif key == "d" then
             selection = {}
-        elseif key == "f" then
-            for i, poly in pairs(polygons) do
-                if util.area2(poly) < 0 then
-                    poly[1], poly[2], poly[3] = poly[3], poly[2], poly[1]
-                end
-            end
+        -- elseif key == "f" then
+        --     for i, poly in pairs(polygons) do
+        --         if util.area2(poly) < 0 then
+        --             poly[1], poly[2], poly[3] = poly[3], poly[2], poly[1]
+        --         end
+        --     end
         end
     else
         if key == "escape" then
@@ -300,7 +300,7 @@ function love.mousereleased(x, y, button)
             target.vert[2] = y
 
             do
-                local snap = util.find_nearby_vert(vertices, target.vert, 6)
+                local snap = util.find_nearby_vert(vertices, target.vert, 8)
 
                 if snap ~= nil then
                     for i=#polygons, 1, -1 do
@@ -332,12 +332,15 @@ function love.mousemoved(x, y, dx, dy)
     x, y = translate_mouse(x, y)
 
     if love.mouse.getRelativeMode() then
-        view[1] = view[1] - dx / zoom
-        view[2] = view[2] - dy / zoom
+        view[1] = view[1] + dx / zoom
+        view[2] = view[2] + dy / zoom
+    end
+
+    if mode == nil then
+        update_target()
     end
 
     if not love.mouse.isDown("l") or box_select then
-        update_target()
         return
     end
 
@@ -473,7 +476,7 @@ local function draw_status()
     end
 
     local mx, my = translate_mouse(love.mouse.getPosition())
-    local textr = mx .. ", " .. my
+    local textr = mx .. ", " .. my .. " (" .. zoom .. "x)"
 
     love.graphics.setColor(240, 240, 240)
     love.graphics.rectangle("fill", 0, height - h, width, h)
@@ -510,19 +513,19 @@ function love.draw()
             poly[2][1], poly[2][2],
             poly[3][1], poly[3][2])
 
-        local tx, ty = util.center(poly)
-        local area2 = util.area2(poly)
+        -- local tx, ty = util.center(poly)
+        -- local area2 = util.area2(poly)
+        --
+        -- if area2 >= 0 then
+        --     love.graphics.setColor(0, 255, 0)
+        -- else
+        --     love.graphics.setColor(255, 0, 0)
+        -- end
 
-        if area2 >= 0 then
-            love.graphics.setColor(0, 255, 0)
-        else
-            love.graphics.setColor(255, 0, 0)
-        end
-
-        tx = tx - 100
-        ty = ty - 6
-
-        love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
+        -- tx = tx - 100
+        -- ty = ty - 6
+        --
+        -- love.graphics.printf(math.ceil(math.sqrt(math.abs(area2))), tx, ty, 200, "center")
 
         for i=1, #poly do
             local a = poly[i]

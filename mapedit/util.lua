@@ -5,7 +5,6 @@ function util.area2(poly)
 	local ay = poly[2][2] - poly[1][2]
 	local bx = poly[3][1] - poly[1][1]
 	local by = poly[3][2] - poly[1][2]
-
 	return bx * ay - ax * by
 end
 
