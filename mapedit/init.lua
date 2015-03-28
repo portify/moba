@@ -56,26 +56,6 @@ local function become_dirty()
     end
 end
 
-local function set_image(filename, clean)
-    if filename == "" then
-        if not clean and map.image then
-            become_dirty()
-        end
-
-        map.image = nil
-        return
-    end
-
-    if not clean and (not map.image or map.image.filename ~= filename) then
-        become_dirty()
-    end
-
-    map.image = {
-        filename = filename,
-        instance = love.graphics.newImage(filename)
-    }
-end
-
 local function message_box(title, text, action)
     if current_message_box then
         current_message_box:Remove()
@@ -103,6 +83,39 @@ local function message_box(title, text, action)
     end
 
     current_message_box = frame
+end
+
+local function set_image(filename, clean)
+    if filename == "" then
+        if not clean and map.image then
+            become_dirty()
+        end
+
+        map.image = nil
+        return true
+    end
+
+    local original = filename
+
+    if not love.filesystem.isFile(filename) and filename:sub(0, 5) == "maps/" then
+        filename = "maps-bundled/" .. filename:sub(6)
+    end
+
+    if not love.filesystem.isFile(filename) then
+        message_box("Error", "Cannot find file '" .. original .. "' for background image")
+        return false
+    end
+
+    if not clean and (not map.image or map.image.filename ~= original) then
+        become_dirty()
+    end
+
+    map.image = {
+        filename = original,
+        instance = love.graphics.newImage(filename)
+    }
+
+    return true
 end
 
 local function check_dirty(text, action)
@@ -184,7 +197,7 @@ local function save_map(filename)
     return true
 end
 
-local function open_map(filename)
+local function open_map(filename, translate_to)
     if not love.filesystem.isFile(filename) then
         message_box("Error", "Map file '" .. filename .. "' does not exist")
         return false
@@ -213,10 +226,15 @@ local function open_map(filename)
 
     collectgarbage()
 
-    love.window.setTitle(filename .. " - mapedit")
-
-    map.filename = filename
-    map.dirty = false
+    if translate_to ~= nil then
+        love.window.setTitle(translate_to .. " * - mapedit")
+        map.filename = translate_to
+        map.dirty = true
+    else
+        love.window.setTitle(filename .. " - mapedit")
+        map.filename = filename
+        map.dirty = false
+    end
 
     status_text = "Loaded map from '" .. filename .. "'..."
     status_time = 1
@@ -527,6 +545,13 @@ function love.load()
                     end)
                 end
             end)
+            love.filesystem.getDirectoryItems("maps-bundled/", function (map)
+                if love.filesystem.isFile("maps-bundled/" .. map) and map:sub(-8) == ".textmap" then
+                    open_game:AddOption(map:sub(0, -9) .. " (bundled)", false, function()
+                        check_dirty("open other map", function() open_map("maps-bundled/" .. map, "maps/" .. map) end)
+                    end)
+                end
+            end)
 
             menu:AddOption("New", "assets/icons/page_add.png", function() check_dirty("create new map", new_map) end)
             menu:AddOption("Open...", "assets/icons/folder.png", function() check_dirty("open other map", open_map_from) end)
@@ -567,13 +592,14 @@ function love.load()
         {"Tools", function (menu)
             menu:AddOption("Set Background", "assets/icons/image.png", function()
                 local input = open_text_input("Set Background", "Apply", function(filename)
-                    if filename == "" or love.filesystem.isFile(filename) then
-                        set_image(filename)
-                        return true
-                    else
-                        message_box("Error", "Cannot find file '" .. filename .. "' for background image")
-                        return false
-                    end
+                    return set_image(filename)
+                    -- if filename == "" or love.filesystem.isFile(filename) then
+                    --     set_image(filename)
+                    --     return true
+                    -- else
+                    --     message_box("Error", "Cannot find file '" .. filename .. "' for background image")
+                    --     return false
+                    -- end
                 end)
             end)
             menu:AddOption("Delete Stray Triangles", "assets/icons/bug_link.png", function()

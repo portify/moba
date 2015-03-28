@@ -17,14 +17,26 @@ function world:new(filename)
 end
 
 function world:load()
-    print("Loading map: " .. self.filename)
+    local original = self.filename
+    local filename = self.filename
+
+    print("Loading map " .. filename)
+
+    if not love.filesystem.isFile(filename) and filename:sub(0, 5) == "maps/" then
+        filename = "maps-bundled/" .. filename:sub(6)
+        print("  Doesn't exist, redirecting to " .. filename)
+    end
+
+    if not love.filesystem.isFile(filename) then
+        error("Cannot find map " .. original)
+    end
 
     self.mesh = {}
     self.image = nil
 
     local vertices = {}
 
-    for line in love.filesystem.lines(self.filename) do
+    for line in love.filesystem.lines(filename) do
         if line:sub(1, 2) == "v " then
             x, y = line:match("(.*) (.*)", 3)
             table.insert(vertices, {tonumber(x), tonumber(y)})
@@ -37,7 +49,18 @@ function world:load()
             ))
         elseif line:sub(1, 2) == "i " then
             if is_client then
-                self.image = love.graphics.newImage(line:sub(3))
+                local original = line:sub(3)
+                local filename = original
+
+                if not love.filesystem.isFile(filename) and filename:sub(0, 5) == "maps/" then
+                    filename = "maps-bundled/" .. filename:sub(6)
+                end
+
+                if love.filesystem.isFile(filename) then
+                    self.image = love.graphics.newImage(filename)
+                else
+                    print("  Cannot find image " .. original .. ", ignoring directive")
+                end
             end
         end
     end
