@@ -19,6 +19,7 @@ function game:enter(previous, address, host, server)
 
     self.entities = {}
     self.world = world:new()
+    self.entity_init = {}
 
     self.control = setmetatable({}, {__mode = "kv"})
     self.camera = camera.new()
@@ -81,8 +82,16 @@ function game:update(dt)
 
                 for id, params in pairs(data) do
                     local type = entity_from_id(params.t)
-                    local ent = type:new()
 
+                    if not self.entity_init[type] then
+                        if type.client_init then
+                            type.client_init()
+                        end
+
+                        self.entity_init[type] = true
+                    end
+
+                    local ent = type:new()
                     self.entities[id] = ent
                     ent.__id = id
                     ent:added()
@@ -239,9 +248,12 @@ function game:keypressed(key)
             love.mouse.setRelativeMode(false)
         end
     elseif key == "q" then
+        local x, y = self.camera:mousepos()
+
         self.server:send(mp.pack{
             e = EVENT.USE_ABILITY,
-            i = 1
+            i = 1,
+            x = x, y = y
         })
     end
 end

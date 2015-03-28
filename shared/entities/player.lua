@@ -234,14 +234,28 @@ function player:move_to(x, y)
     end
 end
 
-function player:use_ability(i)
+function player:use_ability(i, x, y)
+    self.path = nil
+    self.path_progress = 0
+
+    local dx = x - self.px
+    local dy = y - self.py
+    local d = math.sqrt(dx^2 + dy^2)
+
+    self.vx = dx / d
+    self.vy = dy / d
+
+    update_entity(self)
+
     if i == 1 then
-        local speed = 300
+        local speed = 500
         local p = entities.projectile:new()
-        p.px = self.px + self.vx * 8
-        p.py = self.py + self.vy * 8
+
+        p.px = self.px + self.vx * 16
+        p.py = self.py + self.vy * 16
         p.vx = self.vx * speed
         p.vy = self.vy * speed
+
         add_entity(p)
     end
 end

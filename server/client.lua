@@ -93,7 +93,7 @@ function client:received(data)
         end
     elseif data.e == EVENT.USE_ABILITY then
         if self.player ~= nil then
-            self.player:use_ability(data.i)
+            self.player:use_ability(data.i, data.x, data.y)
         end
     else
         print("Got unknown packet from client " .. self.peer:index() .. ": " .. data.e)

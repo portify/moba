@@ -1,5 +1,5 @@
 local menu = {}
-local address = "127.0.0.1:6788"
+local address = config.default_server
 
 local menu_lib = require "client/menu"
 local menu_obj

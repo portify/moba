@@ -2,10 +2,36 @@ local projectile = {}
 projectile.__index = projectile
 setmetatable(projectile, entity)
 
+function projectile.client_init()
+    local image = love.graphics.newImage("assets/cloud.png")
+    local system = love.graphics.newParticleSystem(image, 60)
+
+    system:setParticleLifetime(0.4, 0.4)
+    system:setEmissionRate(30)
+    system:setSizes(0.1, 0.2, 0.3)
+    system:setLinearAcceleration(-60, -60, 60, 60)
+    system:setTangentialAcceleration(-256, 256)
+    system:setColors(
+        255, 255, 255, 0,
+        255, 255, 255, 255,
+        255, 255, 255, 255,
+        255, 255, 255, 0)
+
+    projectile.emitter_type = system
+    projectile.emitter_type:stop()
+end
+
 function projectile:new()
     new = setmetatable({}, self)
     new.time = 0
     new.damage = 8
+
+    if is_client then
+        new.emitter = projectile.emitter_type:clone()
+        new.emitter:reset()
+        new.emitter:start()
+    end
+
     return new
 end
 
@@ -78,21 +104,31 @@ function projectile:update(dt)
 
     if not is_client then
         for id, ent in pairs(server.entities) do
-            if getmetatable(ent) == entities.player and line_on_circle(a, b, {ent.px, ent.py}, 4) then
+            if getmetatable(ent) == entities.player and line_on_circle(a, b, {ent.px, ent.py}, 8) then
                 ent:damage(self.damage)
                 remove_entity(self)
                 return
             end
         end
     end
+
+    if is_client then
+        self.emitter:moveTo(self.px, self.py)
+        self.emitter:setDirection(math.atan2(self.vy, self.vx))
+        self.emitter:update(dt)
+    end
 end
 
 function projectile:draw()
+    love.graphics.setColor(255, 255, 255)
+    -- love.graphics.draw(self.emitter, self.px, self.py)
+    love.graphics.draw(self.emitter)
+
     love.graphics.setColor(255, 80, 80)
-    love.graphics.circle("fill", self.px, self.py, 3)
+    love.graphics.circle("fill", self.px, self.py, 7, 14)
     love.graphics.setLineWidth(2)
     love.graphics.setColor(255, 160, 160)
-    love.graphics.circle("line", self.px, self.py, 3)
+    love.graphics.circle("line", self.px, self.py, 7, 14)
 end
 
 return projectile
