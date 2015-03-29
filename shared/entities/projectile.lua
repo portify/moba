@@ -1,3 +1,5 @@
+local util = require "shared.util"
+
 local projectile = {}
 projectile.__index = projectile
 setmetatable(projectile, entity)
@@ -73,35 +75,6 @@ function projectile:get_world_plane()
     return self.plane
 end
 
-local function line_on_circle(a, b, c, r)
-    local d = {
-        b[1] - a[1],
-        b[2] - a[2]
-    }
-
-    local f = {
-        a[1] - c[1],
-        a[2] - c[2]
-    }
-
-    local a = (d[1]^2 + d[2]^2)
-    local b = 2 * (f[1] * d[1] + f[2] * d[2])
-    local c = (f[1]^2 + f[2]^2) - r^2
-
-    local discriminant = b * b - 4 * a * c
-
-    if discriminant < 0 then
-        return false
-    end
-
-    discriminant = math.sqrt(discriminant)
-
-    local t1 = (-b - discriminant) / (2 * a)
-    local t2 = (-b + discriminant) / (2 * a)
-
-    return (t1 >= 0 and t1 <= 1) or (t2 >= 0 and t2 <= 1)
-end
-
 function projectile:update(dt)
     if not is_client and self.life >= 0 then
         self.life = self.life - dt
@@ -142,10 +115,12 @@ function projectile:update(dt)
     if not is_client then
         for id, ent in pairs(server.entities) do
             if
-                not self.ignore[ent] and
                 ent ~= self and
                 ent.is_unit and
-                line_on_circle(a, b, {ent.px, ent.py}, self.radius)
+                not self.ignore[ent] and
+                (self.target == nil or id == self.target) and
+                -- util.line_on_circle(a, b, {ent.px, ent.py}, self.radius)
+                util.circle_on_circle(ent.px, ent.py, ent.radius, self.px, self.py, self.radius)
             then
                 if ent.team ~= self.team then
                     ent:damage(self.damage)

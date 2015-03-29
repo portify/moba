@@ -3,6 +3,7 @@ local util = require "shared.util"
 
 local player = {
     is_unit = true,
+    radius = 8,
     use_funnel = true,
     use_outside_snap = true,
     allow_direct_move = true
@@ -104,10 +105,10 @@ function player:draw()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, 8, 16)
+    love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
     love.graphics.setLineWidth(2)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, 8, 16)
+    love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
 
     -- love.graphics.setColor(80, 80, 80)
     -- love.graphics.circle("fill", self.px, self.py, 8)
@@ -125,33 +126,33 @@ function player:draw()
     -- Background
     love.graphics.setColor(127, 127, 127)
     love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - 4 - spacing - height,
+        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
         width, height)
 
     -- Lost health
     love.graphics.setColor(255, 50, 50)
     love.graphics.rectangle("fill",
-        self.px - width / 2 + width * hp, self.py - 4 - spacing - height,
+        self.px - width / 2 + width * hp, self.py - self.radius / 2 - spacing - height,
         width * (self.health_buffer / self.health_max), height)
 
     -- Current health
     -- love.graphics.setColor(50, 255, 50)
     love.graphics.setColor(r, g, b)
     love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - 4 - spacing - height,
+        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
         width * hp, height)
 
     -- Outline
     love.graphics.setColor(255, 255, 255)
     love.graphics.setLineWidth(2)
     love.graphics.rectangle("line",
-        self.px - width / 2, self.py - 4 - spacing - height,
+        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
         width, height)
 
     if self.name ~= nil then
         love.graphics.setColor(r, g, b)
         love.graphics.setFont(self._name_font)
-        love.graphics.printf(self.name, self.px - 200, self.py - 4 - spacing - height - 14 - 8, 400, "center")
+        love.graphics.printf(self.name, self.px - 200, self.py - self.radius / 2 - spacing - height - 14 - 8, 400, "center")
     end
 end
 
@@ -187,10 +188,10 @@ function player:draw_minimap()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, 64)
+    love.graphics.circle("fill", self.px, self.py, self.radius * 8)
     love.graphics.setLineWidth(6)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, 64)
+    love.graphics.circle("line", self.px, self.py, self.radius * 8)
 end
 
 function player:use_ability(which, x, y)

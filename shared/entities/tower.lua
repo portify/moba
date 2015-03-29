@@ -2,8 +2,9 @@ local util = require "shared.util"
 
 local tower = {
     is_unit = true,
-    max_player_dist = 150,
-    health_max = 500
+    radius = 32,
+    health_max = 500,
+    max_player_dist = 150
 }
 
 tower.__index = tower
@@ -162,12 +163,12 @@ function tower:draw()
 
     -- Draw body
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, 32, 64)
+    love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
 
     -- Draw outline of body
     love.graphics.setLineWidth(4)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, 32, 64)
+    love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
 
     if self.health > 0 then
         -- Draw health bar
@@ -178,18 +179,18 @@ function tower:draw()
 
         love.graphics.setColor(127, 127, 127)
         love.graphics.rectangle("fill",
-            self.px - width / 2, self.py - 16 - spacing - height,
+            self.px - width / 2, self.py - self.radius / 2 - spacing - height,
             width, height)
 
         love.graphics.setColor(r, g, b)
         love.graphics.rectangle("fill",
-            self.px - width / 2, self.py - 16 - spacing - height,
+            self.px - width / 2, self.py - self.radius / 2 - spacing - height,
             width * hp, height)
 
         love.graphics.setColor(255, 255, 255)
         love.graphics.setLineWidth(2)
         love.graphics.rectangle("line",
-            self.px - width / 2, self.py - 16 - spacing - height,
+            self.px - width / 2, self.py - self.radius / 2 - spacing - height,
             width, height)
         end
 end
