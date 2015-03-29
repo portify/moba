@@ -30,6 +30,7 @@ function projectile:new()
     new.damage = 0
     new.vx = 0
     new.vy = 0
+    new.team = nil
 
     if is_client then
         new.emitter = projectile.emitter_type:clone()
@@ -146,7 +147,10 @@ function projectile:update(dt)
                 ent.is_unit and
                 line_on_circle(a, b, {ent.px, ent.py}, self.radius)
             then
-                ent:damage(self.damage)
+                if ent.team ~= self.team then
+                    ent:damage(self.damage)
+                end
+
                 remove_entity(self)
                 return
             end

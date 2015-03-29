@@ -6,6 +6,7 @@ local small_font
 
 require("client.states.game.net")(game)
 require("client.states.game.input")(game)
+require("client.states.game.ui")(game)
 
 function game:init()
     small_font = love.graphics.newFont(8)
@@ -95,6 +96,8 @@ function game:draw()
         love.graphics.setColor(0, 255, 255)
         love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
     end
+
+    self:draw_ui()
 end
 
 return game

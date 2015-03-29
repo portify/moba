@@ -104,10 +104,10 @@ function player:draw()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, 8)
+    love.graphics.circle("fill", self.px, self.py, 8, 16)
     love.graphics.setLineWidth(2)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, 8)
+    love.graphics.circle("line", self.px, self.py, 8, 16)
 
     -- love.graphics.setColor(80, 80, 80)
     -- love.graphics.circle("fill", self.px, self.py, 8)
@@ -155,6 +155,44 @@ function player:draw()
     end
 end
 
+function player:draw_minimap()
+    local r, g, b
+
+    if self.team == 0 then
+        -- r, g, b = 255, 127, 50
+        r, g, b = 125, 25, 175
+    elseif self.team == 1 then
+        r, g, b = 50, 127, 255
+    else
+        r, g, b = 127, 127, 127
+    end
+
+    if self.path ~= nil then
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(0, 255, 0)
+
+        local i = #self.path
+
+        while i > 1 do
+            local a = self.path[i]
+            local b = self.path[i - 1]
+
+            if i == #self.path then
+                a = {self.px, self.py}
+            end
+
+            love.graphics.line(a[1], a[2], b[1], b[2])
+            i = i - 1
+        end
+    end
+
+    love.graphics.setColor(r, g, b)
+    love.graphics.circle("fill", self.px, self.py, 64)
+    love.graphics.setLineWidth(6)
+    love.graphics.setColor(r/2, g/2, b/2)
+    love.graphics.circle("line", self.px, self.py, 64)
+end
+
 function player:use_ability(which, x, y)
     self.path = nil
     self.path_progress = 0
@@ -182,6 +220,7 @@ function player:use_ability(which, x, y)
         end
 
         p.ignore[self] = true
+        p.team = self.team
         p.life = 3
         p.speed = 500
         p.radius = 8
@@ -212,6 +251,7 @@ function player:use_ability(which, x, y)
         local p = entities.projectile:new()
 
         p.ignore[self] = true
+        p.team = self.team
         p.target = target
         p.life = -1
         p.speed = 200

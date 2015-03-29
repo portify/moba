@@ -1,9 +1,19 @@
 return function(game)
     function game:update_input(dt)
         local paused = gamestate.current() ~= self
+        local mpx, mpy, mpw, mph = self:get_minimap_bounds()
 
         if love.mouse.isDown("r") and not paused then
-            local x, y = self.camera:mousepos()
+            local x, y = love.mouse.getPosition()
+
+            if x >= mpx and y >= mpy then
+                x = (x - mpx) / self.minimap_scale
+                y = (y - mpy) / self.minimap_scale
+            else
+                x, y = self.camera:worldCoords(x, y)
+            end
+
+            -- local x, y = self.camera:mousepos()
             self.move_to_timer = self.move_to_timer - dt
 
             if self.move_to_timer <= 0 and (x ~= self.move_to_x or y ~= self.move_to_y) then
@@ -29,6 +39,20 @@ return function(game)
             control:update_camera(self.camera, dt)
         elseif not paused and not love.mouse.getRelativeMode() and love.window.hasMouseFocus() then
             local mx, my = love.mouse.getPosition()
+            local mp_moved = false
+
+            -- This is a really poor way of doing minimap movement...
+            -- if love.mouse.isDown("l") and self.world.image ~= nil then
+            if love.mouse.isDown("l") then
+                local x = (mx - mpx) / self.minimap_scale
+                local y = (my - mpy) / self.minimap_scale
+
+                if x >= 0 and y >= 0 then
+                    self.camera:lookAt(x, y)
+                    mp_moved = true
+                end
+            end
+
             local speed = 750
 
             if mx <= 0 then

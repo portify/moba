@@ -50,10 +50,20 @@ function tower:unpack(t, initial)
 end
 
 function tower:damage(hp)
+    local prev = self.health
+    self.health = math.max(0, self.health - hp)
+
+    if prev ~= self.health then
+        if self.health <= 0 then
+            self.active_target = nil
+        end
+
+        update_entity(self)
+    end
 end
 
 function tower:update(dt)
-    if is_client then
+    if is_client or self.health <= 0 then
         return
     end
 
@@ -61,7 +71,7 @@ function tower:update(dt)
 
     if active_target ~= nil then
         local ent = server.entities[active_target]
-        
+
         if
             ent == nil or
             util.dist(self.px, self.py, ent.px, ent.py) > self.max_player_dist
@@ -99,6 +109,7 @@ function tower:update(dt)
             p.damage = 12
             p.px = self.px
             p.py = self.py
+            p.team = self.team
 
             add_entity(p)
 
@@ -121,30 +132,32 @@ function tower:draw()
         r, g, b = 127, 127, 127
     end
 
-    local target
-    local control = states.game:get_control()
+    if self.health > 0 then
+        local target
+        local control = states.game:get_control()
 
-    if self.active_target ~= nil then
-        target = states.game.entities[self.active_target]
-    end
+        if self.active_target ~= nil then
+            target = states.game.entities[self.active_target]
+        end
 
-    -- Draw attack radius outline
-    love.graphics.setLineWidth(1)
+        -- Draw attack radius outline
+        love.graphics.setLineWidth(1)
 
-    if target == control then
-        love.graphics.setColor(255, 0, 0, 40)
-    else
-        love.graphics.setColor(r, g, b, 40)
-    end
+        if target == control then
+            love.graphics.setColor(255, 0, 0, 40)
+        else
+            love.graphics.setColor(r, g, b, 40)
+        end
 
-    love.graphics.circle("fill", self.px, self.py, self.max_player_dist, self.max_player_dist * 2)
-    love.graphics.circle("line", self.px, self.py, self.max_player_dist, self.max_player_dist * 2)
+        love.graphics.circle("fill", self.px, self.py, self.max_player_dist, self.max_player_dist * 2)
+        love.graphics.circle("line", self.px, self.py, self.max_player_dist, self.max_player_dist * 2)
 
-    -- Draw line to current target
-    if target ~= nil then
-        love.graphics.setLineWidth(2)
-        love.graphics.setColor(255, 75, 75)
-        love.graphics.line(self.px, self.py, target.px, target.py)
+        -- Draw line to current target
+        if target ~= nil then
+            love.graphics.setLineWidth(2)
+            love.graphics.setColor(255, 75, 75)
+            love.graphics.line(self.px, self.py, target.px, target.py)
+        end
     end
 
     -- Draw body
@@ -156,27 +169,29 @@ function tower:draw()
     love.graphics.setColor(r/2, g/2, b/2)
     love.graphics.circle("line", self.px, self.py, 32, 64)
 
-    -- Draw health bar
-    local width = 64
-    local height = 12
-    local spacing = 32
-    local hp = self.health / self.health_max
+    if self.health > 0 then
+        -- Draw health bar
+        local width = 64
+        local height = 12
+        local spacing = 32
+        local hp = self.health / self.health_max
 
-    love.graphics.setColor(127, 127, 127)
-    love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - 16 - spacing - height,
-        width, height)
+        love.graphics.setColor(127, 127, 127)
+        love.graphics.rectangle("fill",
+            self.px - width / 2, self.py - 16 - spacing - height,
+            width, height)
 
-    love.graphics.setColor(r, g, b)
-    love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - 16 - spacing - height,
-        width * hp, height)
+        love.graphics.setColor(r, g, b)
+        love.graphics.rectangle("fill",
+            self.px - width / 2, self.py - 16 - spacing - height,
+            width * hp, height)
 
-    love.graphics.setColor(255, 255, 255)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line",
-        self.px - width / 2, self.py - 16 - spacing - height,
-        width, height)
+        love.graphics.setColor(255, 255, 255)
+        love.graphics.setLineWidth(2)
+        love.graphics.rectangle("line",
+            self.px - width / 2, self.py - 16 - spacing - height,
+            width, height)
+        end
 end
 
 return tower
