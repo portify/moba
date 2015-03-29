@@ -751,9 +751,19 @@ function love.load()
     statustext:SetPos(4, 3)
 
     ui_font = love.graphics.newFont(12)
+    local filename
 
-    if love.path.abs(arg[#arg]) then
-        open_map(arg[#arg])
+    for i=#arg, 3, -1 do
+        local test = table.concat(arg, " ", i, #arg)
+
+        if love.path.abs(test) then
+            filename = test
+            break
+        end
+    end
+
+    if filename ~= nil then
+        open_map(filename)
     else
         new_map()
     end
