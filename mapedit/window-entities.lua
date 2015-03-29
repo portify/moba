@@ -50,7 +50,7 @@ for i, template in ipairs(templates) do
 end
 
 function window:OnClose()
-    window:SetVisible(true)
+    window:SetVisible(false)
     return false
 end
 

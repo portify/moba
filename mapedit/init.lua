@@ -626,6 +626,11 @@ function love.load()
             end)
         end},
         {"View", function (menu)
+            local windows = loveframes.Create("menu")
+            windows:AddOption(window.entities:GetName(), false, function()
+                window.entities:SetVisible(not window.entities:GetVisible())
+            end)
+
             menu:AddOption("Toggle status bar", false, function()
                 statusbar:SetVisible(not statusbar:GetVisible())
             end)
@@ -640,6 +645,8 @@ function love.load()
                 target = {}
                 mode = nil
             end)
+            menu:AddDivider()
+            menu:AddSubMenu("Windows ->", false, windows)
         end},
         {"Tools", function (menu)
             menu:AddOption("Set Background", "assets/icons/image.png", function()

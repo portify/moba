@@ -105,7 +105,7 @@ end
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"
-    t.console = (not not args.server.set) or args.mapedit.set
+    t.console = not not args.server.set
 
     if args.mapedit.set then
         t.window.title = "mapedit"
