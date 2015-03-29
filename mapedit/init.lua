@@ -863,38 +863,6 @@ function love.keypressed(key, unicode)
             elseif key == "e" then
                 perform_delete("vert")
             end
-        elseif mode == nil then
-            local x, y = translate_mouse(love.mouse.getPosition())
-
-            if key == "o" then -- team 1 tower
-                local ent = entities.ent_by_name("tower"):new(x, y)
-                ent.team = 1
-                table.insert(map.entities, ent)
-                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
-                selection = {}
-                mode = "move-ent"
-            elseif key == "p" then -- team 0 tower
-                local ent = entities.ent_by_name("tower"):new(x, y)
-                ent.team = 0
-                table.insert(map.entities, ent)
-                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
-                selection = {}
-                mode = "move-ent"
-            elseif key == "k" then -- team 1 spawn
-                local ent = entities.ent_by_name("spawn"):new(x, y)
-                ent.team = 1
-                table.insert(map.entities, ent)
-                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
-                selection = {}
-                mode = "move-ent"
-            elseif key == "l" then -- team 0 spawn
-                local ent = entities.ent_by_name("spawn"):new(x, y)
-                ent.team = 0
-                table.insert(map.entities, ent)
-                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
-                selection = {}
-                mode = "move-ent"
-            end
         end
     end
 
