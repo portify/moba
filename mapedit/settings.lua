@@ -12,6 +12,7 @@ return function()
 
     window = loveframes.Create("frame")
     window:SetName("Settings")
+    window:SetIcon("assets/icons/cog.png")
     window:SetScreenLocked(1)
     window:SetSize(640, 480)
     window:Center()

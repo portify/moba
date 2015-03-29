@@ -1,16 +1,11 @@
 local util = require "mapedit.util"
 local open_settings = require "mapedit.settings"
-local entities = require "mapedit.entities"
-
-local draw_status_bar = true
+entities = require "mapedit.entities"
 
 local enable_mesh = true
 local enable_ents = true
 
-local map
 local vertices, polygons
-local mode, target
-local selection
 
 local dragging, drag_start_view, drag_start_user
 local pressed = {}
@@ -23,9 +18,6 @@ local ui_font
 local status_text
 local status_time
 
-local menubar
-local current_message_box
-
 -- this is too hacky
 local is_explicit_quit = false
 
@@ -34,9 +26,33 @@ local function explicit_quit()
     love.event.quit()
 end
 
-local function translate_mouse(x, y)
+function translate_mouse(x, y)
     return (x                      ) / zoom + view[1],
            (y - menubar:GetHeight()) / zoom + view[2]
+end
+
+local function is_on_screen(x, y)
+    return
+        x >= view[1] - 8 * zoom and
+        y >= view[2] - 8 * zoom and
+        x < view[1] + love.graphics.getWidth() / zoom + 8 * zoom and
+        y < view[2] + love.graphics.getHeight() / zoom + 8 * zoom - menubar:GetHeight() - statusbar:GetHeight()
+end
+
+local function set_view(x, y)
+    if map.image ~= nil then
+        local width = love.graphics.getWidth() / zoom
+        local height = love.graphics.getHeight() / zoom - menubar:GetHeight() - statusbar:GetHeight()
+
+        view[1] = math.min(map.image.instance:getWidth()  - width, x)
+        view[2] = math.min(map.image.instance:getHeight() - height, y)
+    else
+        view[1] = x
+        view[2] = y
+    end
+
+    view[1] = math.max(0, view[1])
+    view[2] = math.max(0, view[2])
 end
 
 local function is_selected(vert)
@@ -212,6 +228,7 @@ local function save_map(filename)
         local b = vert_id[poly[2]]
         local c = vert_id[poly[3]]
 
+        -- Force proper winding order
         if util.area2(poly) < 0 then
             a, b, c = c, b, a
         end
@@ -333,27 +350,6 @@ local function open_map_from()
     input:MoveIndicator(5, true)
 end
 
-local function set_view(x, y)
-    if map.image ~= nil then
-        view[1] = math.min(map.image.instance:getWidth()  - (love.graphics.getWidth()  / zoom     ), x)
-        view[2] = math.min(map.image.instance:getHeight() - (love.graphics.getHeight() / zoom - 42), y)
-    else
-        view[1] = x
-        view[2] = y
-    end
-
-    view[1] = math.max(0, view[1])
-    view[2] = math.max(0, view[2])
-end
-
-local function is_on_screen(x, y)
-    return
-        x >= view[1] - 8 * zoom and
-        y >= view[2] - 8 * zoom and
-        x < view[1] + love.graphics.getWidth()  / zoom + 8 * zoom and
-        y < view[2] + love.graphics.getHeight() / zoom + 8 * zoom - 42
-end
-
 local function perform_delete(mode)
     local deleted = false
     local test
@@ -448,35 +444,6 @@ local function update_target()
     end
 
     target = {}
-end
-
-local function draw_status(vertex_count)
-    local width, height = love.graphics.getDimensions()
-    local p = 4
-    local h = 22
-    local w = width - p * 2
-
-    local textl
-
-    if status_text == nil then
-        textl =
-            "Triangles: " .. #polygons .. " | " ..
-            "Vertices: " .. vertex_count
-    else
-        textl = status_text
-    end
-
-    local mx, my = translate_mouse(love.mouse.getPosition())
-    local textr =
-        math.max(0, math.floor(mx)) .. ", " ..
-        math.max(0, math.floor(my)) ..
-        " (" .. zoom .. "x)"
-
-    love.graphics.setColor(240, 240, 240)
-    love.graphics.rectangle("fill", 0, height - h, width, h)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.printf(textl, p * 2, height - h + p, width - p * 4)
-    love.graphics.printf(textr, p * 2, height - h + p, width - p * 4, "right")
 end
 
 local function draw_mesh()
@@ -660,7 +627,7 @@ function love.load()
         end},
         {"View", function (menu)
             menu:AddOption("Toggle status bar", false, function()
-                draw_status_bar = not draw_status_bar
+                statusbar:SetVisible(not statusbar:GetVisible())
             end)
             menu:AddDivider()
             menu:AddOption("Toggle navigation mesh", false, function()
@@ -676,16 +643,7 @@ function love.load()
         end},
         {"Tools", function (menu)
             menu:AddOption("Set Background", "assets/icons/image.png", function()
-                local input = open_text_input("Set Background", "Apply", function(filename)
-                    return set_image(filename)
-                    -- if filename == "" or love.filesystem.isFile(filename) then
-                    --     set_image(filename)
-                    --     return true
-                    -- else
-                    --     message_box("Error", "Cannot find file '" .. filename .. "' for background image")
-                    --     return false
-                    -- end
-                end)
+                local input = open_text_input("Set Background", "Apply", set_image)
             end)
             menu:AddOption("Delete Stray Triangles", "assets/icons/bug_link.png", function()
                 for t=#polygons, 1, -1 do
@@ -750,8 +708,20 @@ function love.load()
         end}
     }
 
+    statusbar = loveframes.Create("panel")
+    statusbar:SetSize(love.graphics.getWidth(), 22)
+    statusbar:SetPos(0, love.graphics.getHeight() - statusbar:GetHeight())
+    statustext = loveframes.Create("text", statusbar)
+    statustext:SetText("")
+    statustext:SetSize(statusbar:GetWidth() - 8, statusbar:GetHeight() - 8)
+    statustext:SetPos(4, 3)
+
     ui_font = love.graphics.newFont(12)
     new_map()
+
+    window = {
+        entities = require "mapedit.window-entities"
+    }
 end
 
 function love.quit()
@@ -775,6 +745,10 @@ end
 
 function love.resize(w, h)
     menubar:SetSize(love.graphics.getWidth(), menubar:GetHeight())
+    statusbar:SetSize(love.graphics.getWidth(), statusbar:GetHeight())
+    statusbar:SetPos(0, love.graphics.getHeight() - statusbar:GetHeight())
+    statustext:SetSize(statusbar:GetWidth() - 8, statusbar:GetHeight() - 8)
+
     set_view(view[1], view[2])
 end
 
@@ -1182,14 +1156,33 @@ function love.draw()
     love.graphics.pop()
     love.graphics.setFont(ui_font)
 
-    if draw_status_bar then
-        draw_status(vertex_count)
-    end
-
     if config.enable_fps_warning and love.timer.getFPS() < 50 then
         love.graphics.setColor(255, 50, 50)
         love.graphics.print("FPS: " .. love.timer.getFPS(), 8, 28)
     end
 
     loveframes.draw()
+
+    -- TODO: to be replaced with `statustext`
+    if statusbar:GetVisible() then
+        local textl = status_text
+
+        if status_text == nil then
+            textl =
+                "Triangles: " .. #polygons .. " | " ..
+                "Vertices: " .. vertex_count
+        end
+
+        local mx, my = translate_mouse(love.mouse.getPosition())
+        local textr =
+            math.max(0, math.floor(mx)) .. ", " ..
+            math.max(0, math.floor(my)) ..
+            " (" .. zoom .. "x)"
+
+        local x, y = statustext:GetPos()
+        local w = statustext:GetWidth()
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.printf(textl, x, y, w)
+        love.graphics.printf(textr, x, y, w, "right")
+    end
 end

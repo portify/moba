@@ -74,7 +74,7 @@ function pause:draw()
     love.graphics.setFont(font_stats)
     love.graphics.setColor(255, 255, 255, 150)
     love.graphics.printf(
-        "Frame time: " .. math.ceil(love.timer.getDelta() * 1000000) .. "us (" .. love.timer.getFPS() .."fps)\n" ..
+        "Frame time: " .. math.ceil(love.timer.getAverageDelta() * 1000000) .. "us (" .. love.timer.getFPS() .."fps)\n" ..
         "Ping: " .. self.previous.server:round_trip_time() .. "ms\n" ..
         "Server: " .. self.previous.address,
         0, 8, love.graphics.getWidth() - 8, "right")

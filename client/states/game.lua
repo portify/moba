@@ -140,14 +140,14 @@ function game:update(dt)
         local x, y = self.camera:mousepos()
         self.move_to_timer = self.move_to_timer - dt
 
-        if self.move_to_timer <= 0 and x ~= self.move_to_x and y ~= self.move_to_y then
-            self.server:send(mp.pack({
+        if self.move_to_timer <= 0 and (x ~= self.move_to_x or y ~= self.move_to_y) then
+            self.server:send(mp.pack{
                 e = EVENT.MOVE_TO,
                 x = x,
                 y = y
-            }))
+            })
 
-            self.move_to_timer = 0.05
+            self.move_to_timer = 0.1
             self.move_to_x = x
             self.move_to_y = y
         end

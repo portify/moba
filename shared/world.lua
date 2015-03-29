@@ -116,19 +116,21 @@ function world:unpack(t)
 end
 
 function world:project(ix, iy)
-    local best_plane, best_point, lowest
+    local best_plane, best_point, best_distance
 
     for i, plane in ipairs(self.mesh) do
         local point, distance = plane:project(ix, iy)
 
-        if point ~= nil and (lowest == nil or distance < lowest) then
+        if point ~= nil and (best_distance == nil or distance < best_distance) then
             best_plane = plane
             best_point = point
-            lowest = distance
+            best_distance = distance
         end
     end
 
-    return best_plane, best_point, lowest
+    if best_distance ~= nil then
+        return best_plane, best_point, best_distance
+    end
 end
 
 function world:get_plane(x, y)

@@ -13,12 +13,19 @@ function util.dist(x1, y1, x2, y2)
 end
 
 function util.point_into_triangle(triangle, wx, wy)
-    local x0 = triangle[1][1]
+    -- local x0 = triangle[1][1]
+    -- local x1 = triangle[2][1]
+    -- local x2 = triangle[3][1]
+    -- local y0 = triangle[1][2]
+    -- local y1 = triangle[2][2]
+    -- local y2 = triangle[3][2]
+
+    local x0 = triangle[3][1]
     local x1 = triangle[2][1]
-    local x2 = triangle[3][1]
-    local y0 = triangle[1][2]
+    local x2 = triangle[1][1]
+    local y0 = triangle[3][2]
     local y1 = triangle[2][2]
-    local y2 = triangle[3][2]
+    local y2 = triangle[1][2]
 
     local ax0 = x1 - x0
     local ay0 = y1 - y0
