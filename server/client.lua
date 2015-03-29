@@ -35,7 +35,7 @@ end
 
 function client:connected()
     print(self.name .. " connected")
-    self.team = 0
+    self.team = love.math.random(0, 1)
 
     self:send({e = EVENT.HELLO})
     self:send({e = EVENT.WORLD, d = server.world:pack()})
@@ -70,6 +70,12 @@ function client:spawn()
     self.player = entities.player:new(self.name)
     self.player.client = self
     self.player.team = self.team
+
+    if server.spawns[self.team] ~= nil then
+        local spawn = server.spawns[self.team][love.math.random(#server.spawns[self.team])]
+        self.player.px = spawn.x
+        self.player.py = spawn.y
+    end
 
     add_entity(self.player)
     self:set_control(self.player)

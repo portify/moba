@@ -13,6 +13,14 @@ function util.center(poly)
 		   (poly[1][2] + poly[2][2] + poly[3][2]) / 3
 end
 
+function util.dist2(x1, y1, x2, y2)
+	return (x2-x1)^2 + (y2-y1)^2
+end
+
+function util.dist(x1, y1, x2, y2)
+	return math.sqrt((x2-x1)^2 + (y2-y1)^2)
+end
+
 function util.in_box(vert, x1, y1, x2, y2)
 	if x2 < x1 then
         x1, x2 = x2, x1

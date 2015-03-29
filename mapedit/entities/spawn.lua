@@ -1,9 +1,11 @@
 local util = require "mapedit.util"
 
-local tower = {}
-tower.__index = tower
+local spawn = {}
+spawn.__index = spawn
 
-function tower:new(x, y)
+local font = love.graphics.newFont(20)
+
+function spawn:new(x, y)
     local new = setmetatable({}, self)
     new.team = false
     new.x = x
@@ -11,7 +13,7 @@ function tower:new(x, y)
     return new
 end
 
-function tower:open(line)
+function spawn:open(line)
     local team, x, y = line:match("([01]) (.+) (.+)")
     local new = setmetatable({}, self)
     new.team = tonumber(team)
@@ -20,15 +22,15 @@ function tower:open(line)
     return new
 end
 
-function tower:save()
+function spawn:save()
     return tostring(self.team) .. " " .. tostring(self.x) .. " " .. tostring(self.y)
 end
 
-function tower:is_hover(x, y)
-    return util.dist2(x, y, self.x, self.y) <= 1024
+function spawn:is_hover(x, y)
+    return util.dist2(x, y, self.x, self.y) <= 256
 end
 
-function tower:draw(state)
+function spawn:draw(state)
     local r, g, b
 
     if self.team == 0 then
@@ -49,20 +51,18 @@ function tower:draw(state)
         b = b * 1.2
     end
 
-    -- -- Draw attack radius outline
-    -- love.graphics.setLineWidth(1)
-    -- love.graphics.setColor(r, g, b, 40)
-    -- love.graphics.circle("fill", self.x, self.y, self.max_player_dist, self.max_player_dist * 2)
-    -- love.graphics.circle("line", self.x, self.y, self.max_player_dist, self.max_player_dist * 2)
-
     -- Draw body
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.x, self.y, 32, 64)
+    love.graphics.circle("fill", self.x, self.y, 16, 32)
 
     -- Draw outline of body
     love.graphics.setLineWidth(4)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.x, self.y, 32, 64)
+    love.graphics.circle("line", self.x, self.y, 16, 32)
+
+    -- Draw text on top
+    love.graphics.setFont(font)
+    love.graphics.print("S", self.x - font:getWidth("S") / 2, self.y - font:getHeight("S") / 2)
 end
 
-return tower
+return spawn

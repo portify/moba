@@ -35,6 +35,7 @@ function love.load()
         clients = {},
         entities = {},
         schedules = {},
+        spawns = {},
         time = 0,
         next_id = 0,
         host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
@@ -124,6 +125,10 @@ function love.update(dt)
 end
 
 function add_entity(ent)
+    if ent.hook_add ~= nil then
+        ent:hook_add()
+    end
+
     if ent.__id ~= nil then return ent end
     ent.__id = server.next_id
 
@@ -145,6 +150,10 @@ function add_entity(ent)
 end
 
 function remove_entity(ent)
+    if ent.hook_remove ~= nil then
+        ent:hook_remove()
+    end
+
     if ent.__id == nil then return nil end
     ent:removed()
 
@@ -158,6 +167,10 @@ function remove_entity(ent)
 end
 
 function update_entity(ent)
+    if ent.hook_update ~= nil then
+        ent:hook_update()
+    end
+
     if ent.__id == nil then return end
 
     for i, cl in pairs(server.clients) do

@@ -12,11 +12,11 @@ setmetatable(player, pathedentity)
 
 function player:new(name)
     new = pathedentity.new(self)
-    local sx, sy = self:get_world_instance().mesh[1]:center()
+    -- local sx, sy = self:get_world_instance().mesh[1]:center()
 
     new.name = name
-    new.px = sx
-    new.py = sy
+    -- new.px = sx
+    -- new.py = sy
     new.speed = 170
     new.health_max = 100
     new.health = new.health_max
@@ -134,7 +134,8 @@ function player:draw()
         width * (self.health_buffer / self.health_max), height)
 
     -- Current health
-    love.graphics.setColor(50, 255, 50)
+    -- love.graphics.setColor(50, 255, 50)
+    love.graphics.setColor(r, g, b)
     love.graphics.rectangle("fill",
         self.px - width / 2, self.py - 4 - spacing - height,
         width * hp, height)
@@ -147,6 +148,7 @@ function player:draw()
         width, height)
 
     if self.name ~= nil then
+        love.graphics.setColor(r, g, b)
         love.graphics.setFont(self._name_font)
         love.graphics.printf(self.name, self.px - 200, self.py - 4 - spacing - height - 14 - 8, 400, "center")
     end

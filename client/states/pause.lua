@@ -13,7 +13,7 @@ function pause:init()
         {label = "Resume", func = function() gamestate.pop() end},
         {label = "Disconnect from server", func = function()
             self.previous:disconnect()
-        end, disabled = args.local_loop},
+        end, disabled = args.connect.set},
         {label = "Exit game", func = function() love.event.quit() end}
    }, 4, 40)
 end

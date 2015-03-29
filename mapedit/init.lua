@@ -4,6 +4,9 @@ local entities = require "mapedit.entities"
 
 local draw_status_bar = true
 
+local enable_mesh = true
+local enable_ents = true
+
 local map
 local vertices, polygons
 local mode, target
@@ -41,7 +44,12 @@ local function is_selected(vert)
         local x1, y1 = box_select[1], box_select[2]
         local x2, y2 = translate_mouse(love.mouse.getPosition())
 
-        if util.in_box(vert, x1, y1, x2, y2) then
+        -- Very bad way of checking for entity
+        if getmetatable(vert) ~= nil then
+            if util.in_box({vert.x, vert.y}, x1, y1, x2, y2) then
+                return true
+            end
+        elseif util.in_box(vert, x1, y1, x2, y2) then
             return true
         end
     end
@@ -376,6 +384,18 @@ local function perform_delete(mode)
         end
     end
 
+    for value, yes in pairs(selection) do
+        -- Bad way of checking whether or not it is an entity
+        if getmetatable(value) ~= nil then
+            for i, ent in ipairs(map.entities) do
+                if ent == value then
+                    table.remove(map.entities, i)
+                    break
+                end
+            end
+        end
+    end
+
     selection = {}
     target = {}
 
@@ -389,30 +409,41 @@ end
 local function update_target()
     local x, y = translate_mouse(love.mouse.getPosition())
 
-    for i, vert in pairs(vertices) do
-        if
-            x >= vert[1] - 5 and y >= vert[2] - 5 and
-            x <  vert[1] + 5 and y <  vert[2] + 5
-        then
-            target = {type = "vert", vert = vert}
-            return
+    if enable_ents then
+        for i, ent in ipairs(map.entities) do
+            if ent:is_hover(x, y) then
+                target = {type = "ent", ent = ent}
+                return
+            end
         end
     end
 
-    for i, poly in ipairs(polygons) do
-        for i=1, #poly do
-            local a = poly[i]
-            local b = poly[(i % #poly) + 1]
-
-            if util.line_on_circle(a, b, {x, y}, 4) then
-                target = {type = "edge", poly = poly, edge = i, a = a, b = b}
+    if enable_mesh then
+        for i, vert in pairs(vertices) do
+            if
+                x >= vert[1] - 5 and y >= vert[2] - 5 and
+                x <  vert[1] + 5 and y <  vert[2] + 5
+            then
+                target = {type = "vert", vert = vert}
                 return
             end
         end
 
-        if util.point_in_triangle(x, y, poly[1], poly[2], poly[3]) then
-            target = {type = "poly", poly = poly}
-            return
+        for i, poly in ipairs(polygons) do
+            for i=1, #poly do
+                local a = poly[i]
+                local b = poly[(i % #poly) + 1]
+
+                if util.line_on_circle(a, b, {x, y}, 4) then
+                    target = {type = "edge", poly = poly, edge = i, a = a, b = b}
+                    return
+                end
+            end
+
+            if util.point_in_triangle(x, y, poly[1], poly[2], poly[3]) then
+                target = {type = "poly", poly = poly}
+                return
+            end
         end
     end
 
@@ -430,7 +461,7 @@ local function draw_status(vertex_count)
     if status_text == nil then
         textl =
             "Triangles: " .. #polygons .. " | " ..
-            "Vertices: " .. vertex_count .. (#selection > 0 and (" (" .. #selection .. " selected)") or "")
+            "Vertices: " .. vertex_count
     else
         textl = status_text
     end
@@ -605,7 +636,7 @@ function love.load()
             end)
             menu:AddOption("Save as...", "assets/icons/disk_multiple.png", function() save_map_as() end)
             menu:AddDivider()
-            menu:AddOption("Exit", "assets/icons/cross.png", function() check_dirty("exit", love.event.quit) end)
+            menu:AddOption("Exit", "assets/icons/cross.png", function() check_dirty("quit", explicit_quit) end)
         end},
         {"Edit", function (menu)
             menu:AddOption("Undo (you wish)", "assets/icons/arrow_undo.png")
@@ -621,11 +652,26 @@ function love.load()
                     selection[vert] = true
                     -- table.insert(selection, vert)
                 end
+
+                for i, ent in ipairs(map.entities) do
+                    selection[ent] = true
+                end
             end)
         end},
         {"View", function (menu)
-            menu:AddOption("Toggle Status Bar", false, function()
+            menu:AddOption("Toggle status bar", false, function()
                 draw_status_bar = not draw_status_bar
+            end)
+            menu:AddDivider()
+            menu:AddOption("Toggle navigation mesh", false, function()
+                enable_mesh = not enable_mesh
+                target = {}
+                mode = nil
+            end)
+            menu:AddOption("Toggle entities", false, function()
+                enable_ents = not enable_ents
+                target = {}
+                mode = nil
             end)
         end},
         {"Tools", function (menu)
@@ -727,6 +773,11 @@ function love.update(dt)
     loveframes.update(dt)
 end
 
+function love.resize(w, h)
+    menubar:SetSize(love.graphics.getWidth(), menubar:GetHeight())
+    set_view(view[1], view[2])
+end
+
 function love.keypressed(key, unicode)
     if loveframes.keypressed(key) then
         return
@@ -749,6 +800,10 @@ function love.keypressed(key, unicode)
             for i, vert in pairs(vertices) do
                 selection[vert] = true
             end
+
+            for i, ent in ipairs(map.entities) do
+                selection[ent] = true
+            end
         elseif key == "d" then
             selection = {}
         -- elseif key == "f" then
@@ -765,8 +820,11 @@ function love.keypressed(key, unicode)
             local count = 0
 
             for vert, yes in pairs(selection) do
-                count = count + 1
-                if count == 3 then break end
+                -- Bad way of checking for entity
+                if getmetatable(vert) == nil then
+                    count = count + 1
+                    if count == 3 then break end
+                end
             end
 
             if count == 2 then
@@ -781,6 +839,38 @@ function love.keypressed(key, unicode)
                 perform_delete("edge")
             elseif key == "e" then
                 perform_delete("vert")
+            end
+        elseif mode == nil then
+            local x, y = translate_mouse(love.mouse.getPosition())
+
+            if key == "o" then -- team 1 tower
+                local ent = entities.ent_by_name("tower"):new(x, y)
+                ent.team = 1
+                table.insert(map.entities, ent)
+                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
+                selection = {}
+                mode = "move-ent"
+            elseif key == "p" then -- team 0 tower
+                local ent = entities.ent_by_name("tower"):new(x, y)
+                ent.team = 0
+                table.insert(map.entities, ent)
+                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
+                selection = {}
+                mode = "move-ent"
+            elseif key == "k" then -- team 1 spawn
+                local ent = entities.ent_by_name("spawn"):new(x, y)
+                ent.team = 1
+                table.insert(map.entities, ent)
+                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
+                selection = {}
+                mode = "move-ent"
+            elseif key == "l" then -- team 0 spawn
+                local ent = entities.ent_by_name("spawn"):new(x, y)
+                ent.team = 0
+                table.insert(map.entities, ent)
+                target = {type = "ent", ent = ent, move_x = 0, move_y = 0}
+                selection = {}
+                mode = "move-ent"
             end
         end
     end
@@ -801,10 +891,15 @@ function love.mousepressed(x, y, button)
         return
     end
 
-    pressed[button] = true
-
     local ox, oy = x, y
     x, y = translate_mouse(x, y)
+
+    if mode ~= nil then
+        mode = nil
+        return
+    end
+
+    pressed[button] = true
 
     if button == "l" then
         if not love.keyboard.isDown("lctrl") and not love.keyboard.isDown("rctrl") then
@@ -865,6 +960,12 @@ function love.mousereleased(x, y, button)
                 end
             end
 
+            for i, ent in ipairs(map.entities) do
+                if ent.x >= x1 and ent.y >= y1 and ent.x <= x2 and ent.y <= y2 then
+                    selection[ent] = true
+                end
+            end
+
             box_select = nil
             return
         end
@@ -879,6 +980,8 @@ function love.mousereleased(x, y, button)
                 selection[target.poly[1]] = true
                 selection[target.poly[2]] = true
                 selection[target.poly[3]] = true
+            elseif target.type == "ent" then
+                selection[target.ent] = true
             end
         elseif mode == "move-vertex" then
             target.vert[1] = x
@@ -929,7 +1032,7 @@ function love.mousemoved(x, y, dx, dy)
         return
     end
 
-    if not pressed["l"] then
+    if not pressed["l"] and mode == nil then
         update_target()
         return
     end
@@ -992,6 +1095,12 @@ function love.mousemoved(x, y, dx, dy)
 
             mode = "move-poly"
             become_dirty()
+        elseif target.type == "ent" then
+            target.move_x = x - target.ent.x
+            target.move_y = y - target.ent.y
+
+            mode = "move-ent"
+            become_dirty()
         end
     end
 
@@ -1016,6 +1125,9 @@ function love.mousemoved(x, y, dx, dy)
         target.poly[2][2] = (y + (target.poly[2][2] - j)) - target.move_y
         target.poly[3][1] = (x + (target.poly[3][1] - i)) - target.move_x
         target.poly[3][2] = (y + (target.poly[3][2] - j)) - target.move_y
+    elseif mode == "move-ent" then
+        target.ent.x = x - target.move_x
+        target.ent.y = y - target.move_y
     end
 end
 
@@ -1031,11 +1143,29 @@ function love.draw()
         love.graphics.draw(map.image.instance, 0, 0)
     end
 
-    local vertex_count = draw_mesh()
+    local vertex_count
+
+    if enable_mesh then
+        vertex_count = draw_mesh()
+    else
+        vertex_count = "badly implemented"
+    end
 
     -- Draw all entities
-    for i, ent in ipairs(map.entities) do
-        ent:draw()
+    if enable_ents then
+        for i, ent in ipairs(map.entities) do
+            local state
+
+            if is_selected(ent) then
+                state = "select"
+            elseif target.ent == ent then
+                state = "hover"
+            else
+                state = "normal"
+            end
+
+            ent:draw(state)
+        end
     end
 
     -- Draw the box we're currently selecting in

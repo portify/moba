@@ -4,7 +4,8 @@ entities = {
     player = require "shared/entities/player",
     projectile = require "shared/entities/projectile",
     minion = require "shared/entities/minion",
-    tower = require "shared/entities/tower"
+    spawn = require "shared/entities/spawn", -- This shouldn't be here!
+    tower = require "shared/entities/tower" -- TODO: separate list for mapents
 }
 
 local e_table = {}
