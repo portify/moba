@@ -142,7 +142,8 @@ function projectile:update(dt)
         for id, ent in pairs(server.entities) do
             if
                 not self.ignore[ent] and
-                getmetatable(ent) == entities.player and
+                ent ~= self and
+                ent.is_unit and
                 line_on_circle(a, b, {ent.px, ent.py}, self.radius)
             then
                 ent:damage(self.damage)

@@ -8,6 +8,7 @@ function world:new(filename)
 
     new.filename = filename
     new.mesh = {}
+    new.paths = {}
 
     if not is_client then
         new:load()
@@ -32,6 +33,7 @@ function world:load()
     end
 
     self.mesh = {}
+    self.paths = {}
     self.image = nil
 
     local vertices = {}
@@ -47,6 +49,14 @@ function world:load()
                 vertices[tonumber(b)],
                 vertices[tonumber(c)]
             ))
+        elseif line:sub(1, 2) == "n " and not is_client then
+            local x, y, name = line:match("([^ ]+) ([^ ]+) (.*)", 3)
+
+            if self.paths[name] == nil then
+                self.paths[name] = {}
+            end
+
+            table.insert(self.paths[name], {tonumber(x), tonumber(y)})
         elseif line:sub(1, 2) == "e " and not is_client then
             local name, rest = line:match("([^ ]+) ?(.*)", 3)
 

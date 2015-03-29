@@ -2,6 +2,7 @@ local pathedentity = require "shared.entities.pathedentity"
 local util = require "shared.util"
 
 local player = {
+    is_unit = true,
     use_funnel = true,
     use_outside_snap = true,
     allow_direct_move = true
@@ -222,6 +223,8 @@ function player:use_ability(which, x, y)
         add_entity(p)
     elseif which == 3 then
         local minion = entities.minion:new(x, y)
+        minion.team = 0
+        minion:begin_a_quest(next(server.world.paths))
         add_entity(minion)
     end
 end
