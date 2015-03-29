@@ -3,7 +3,8 @@ entity = require "shared/entities/entity"
 entities = {
     player = require "shared/entities/player",
     projectile = require "shared/entities/projectile",
-    minion = require "shared/entities/minion"
+    minion = require "shared/entities/minion",
+    tower = require "shared/entities/tower"
 }
 
 local e_table = {}

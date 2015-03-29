@@ -47,6 +47,10 @@ function world:load()
                 vertices[tonumber(b)],
                 vertices[tonumber(c)]
             ))
+        elseif line:sub(1, 2) == "e " and not is_client then
+            local name, rest = line:match("([^ ]+) ?(.*)", 3)
+            local ent = entities[name]:from_map(rest)
+            add_entity(ent)
         elseif line:sub(1, 2) == "i " then
             if is_client then
                 local original = line:sub(3)

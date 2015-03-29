@@ -116,6 +116,7 @@ function game:update(dt)
                 self.control.value:update_camera(self.camera)
             elseif data.e == EVENT.WORLD then
                 self.world:unpack(data.d)
+                self.entities = {}
             end
         elseif event.type == "disconnect" then
             local reason = DISCONNECT(event.data)

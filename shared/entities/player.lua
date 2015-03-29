@@ -19,6 +19,7 @@ function player:new(name)
     new.py = sy
     new.speed = 170
     new.health = 100
+    new.team = false
 
     if is_client then
         new._name_font = get_resource(love.graphics.newFont, 14)
@@ -29,7 +30,7 @@ end
 
 function player:pack(initial)
     if initial then
-        return {self.name, self.health, pathedentity.pack(self, true)}
+        return {self.name, self.team, self.health, pathedentity.pack(self, true)}
     else
         return {self.health, pathedentity.pack(self, false)}
     end
@@ -38,8 +39,9 @@ end
 function player:unpack(t, initial)
     if initial then
         self.name = t[1]
-        self.health = t[2]
-        pathedentity.unpack(self, t[3], true)
+        self.team = t[2]
+        self.health = t[3]
+        pathedentity.unpack(self, t[4], true)
     else
         self.health = t[1]
         pathedentity.unpack(self, t[2], false)
@@ -74,11 +76,27 @@ function player:draw()
     -- love.graphics.setLineWidth(2)
     -- love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
 
-    love.graphics.setColor(80, 80, 80)
+    local r, g, b
+
+    if self.team == 0 then
+        r, g, b = 255, 200, 100
+    elseif self.team == 1 then
+        r, g, b = 100, 200, 255
+    else
+        r, g, b = 200, 200, 200
+    end
+
+    love.graphics.setColor(r, g, b)
     love.graphics.circle("fill", self.px, self.py, 8)
     love.graphics.setLineWidth(2)
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(r/2, g/2, b/2)
     love.graphics.circle("line", self.px, self.py, 8)
+
+    -- love.graphics.setColor(80, 80, 80)
+    -- love.graphics.circle("fill", self.px, self.py, 8)
+    -- love.graphics.setLineWidth(2)
+    -- love.graphics.setColor(255, 255, 255)
+    -- love.graphics.circle("line", self.px, self.py, 8)
 
     local width = 64
     local height = 12

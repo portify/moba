@@ -5,6 +5,7 @@ function client:new(peer, name)
     return setmetatable({
         peer = peer,
         name = name,
+        team = nil,
         control = setmetatable({}, {__mode = "kv"})
     }, self)
 end
@@ -33,7 +34,8 @@ function client:set_control(ent)
 end
 
 function client:connected()
-    print(self.peer:index() .. " connected")
+    print(self.name .. " connected")
+    self.team = 0
 
     self:send({e = EVENT.HELLO})
     self:send({e = EVENT.WORLD, d = server.world:pack()})
@@ -67,6 +69,7 @@ function client:spawn()
 
     self.player = entities.player:new(self.name)
     self.player.client = self
+    self.player.team = self.team
 
     add_entity(self.player)
     self:set_control(self.player)
@@ -77,7 +80,7 @@ function client:disconnected(data)
         self.player = remove_entity(self.player)
     end
 
-    print(self.peer:index() .. " disconnected")
+    print(self.name .. " disconnected")
 
     if args["quit-on-empty"].set then
         local others = false
@@ -107,7 +110,7 @@ function client:received(data)
             self.player:use_ability(data.i, data.x, data.y)
         end
     else
-        print("Got unknown packet from client " .. self.peer:index() .. ": " .. data.e)
+        print("Got unknown packet from client " .. name .. ": " .. data.e)
         self:disconnect(DISCONNECT.INVALID_PACKET)
     end
 end

@@ -38,8 +38,7 @@ function love.load()
         time = 0,
         next_id = 0,
         host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
-            config.bandwidth_in, config.bandwidth_out),
-        world = world:new("maps/" .. map .. ".textmap")
+            config.bandwidth_in, config.bandwidth_out)
     }
 
     function server:by_id(id)
@@ -49,6 +48,8 @@ function love.load()
 
         return self.entities[id]
     end
+
+    server.world = world:new("maps/" .. map .. ".textmap")
 
     if server.host ~= nil then
         print("Listening on " .. address)
