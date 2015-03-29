@@ -1,5 +1,6 @@
-local util = require "mapedit/util"
-local open_settings = require "mapedit/settings"
+local util = require "mapedit.util"
+local open_settings = require "mapedit.settings"
+local entities = require "mapedit.entities"
 
 local draw_status_bar = true
 
@@ -127,7 +128,9 @@ local function check_dirty(text, action)
 end
 
 local function clear_map()
-    map = {}
+    map = {
+        entities = {}
+    }
 
     view = {0, 0}
     zoom = 1
@@ -171,10 +174,29 @@ local function save_map(filename)
     local vert_id = {}
     local vert_next = 1
 
+    for i, ent in ipairs(map.entities) do
+        local name = entities.name_by_ent(getmetatable(ent))
+        if name == nil then
+            error("Internal error: No name registered for " .. tostring(getmetatable(ent)))
+        end
+
+        local line = ent:save()
+        if line == nil then
+            error("Failed to save a " .. tostring(name) .. " entity")
+        end
+
+        data = data .. "e " .. name .. " " .. line .. "\n"
+    end
+
     for i, vert in pairs(vertices) do
         vert_id[vert] = vert_next
         vert_next = vert_next + 1
-        data = data .. "v " .. vert[1] .. " " .. vert[2] .. "\n"
+
+        -- Round to nearest 0.25x
+        local x = math.floor(vert[1] * 4 + 0.25) / 4
+        local y = math.floor(vert[2] * 4 + 0.25) / 4
+
+        data = data .. "v " .. x .. " " .. y .. "\n"
     end
 
     for i, poly in ipairs(polygons) do
@@ -218,11 +240,29 @@ local function open_map(filename, translate_to)
             table.insert(verts, vert)
         elseif line:sub(1, 2) == "p " then
             a, b, c = line:match("(.*) (.*) (.*)", 3)
-            table.insert(polygons, {
-                verts[tonumber(a)],
-                verts[tonumber(b)],
-                verts[tonumber(c)]
-            })
+            a = verts[tonumber(a)]
+            b = verts[tonumber(b)]
+            c = verts[tonumber(c)]
+
+            if a == nil or b == nil or c == nil then
+                error("Map file refers to unexistant vertices")
+            end
+
+            table.insert(polygons, {a, b, c})
+        elseif line:sub(1, 2) == "e " then
+            local name, rest = line:match("([^ ]+) ?(.*)", 3)
+
+            local class = entities.ent_by_name(name)
+            if class == nil then
+                error("Map contains unknown entity type " .. name)
+            end
+
+            local ent = class:open(rest)
+            if ent == nil then
+                error("Failed to load a " .. name .. " entity")
+            end
+
+            table.insert(map.entities, ent)
         elseif line:sub(1, 2) == "i " then
             set_image(line:sub(3))
         end
@@ -408,12 +448,7 @@ local function draw_status(vertex_count)
     love.graphics.printf(textr, p * 2, height - h + p, width - p * 4, "right")
 end
 
-local function draw_map()
-    if map.image ~= nil then
-        love.graphics.setColor(255, 255, 255)
-        love.graphics.draw(map.image.instance, 0, 0)
-    end
-
+local function draw_mesh()
     -- Should definitely switch to a static surface that we only update when
     -- the mesh is changed.
     -- Set stuff up for drawing the mesh
@@ -991,18 +1026,17 @@ function love.draw()
     love.graphics.scale(zoom)
     love.graphics.translate(-view[1], -view[2])
 
-    local vertex_count = draw_map()
+    if map.image ~= nil then
+        love.graphics.setColor(255, 255, 255)
+        love.graphics.draw(map.image.instance, 0, 0)
+    end
 
-    -- Draw the (extremely ugly) vertex snapping guide
-    -- if target.type == "vert" then
-    --     local snap = util.find_nearby_vert(vertices, target.vert, 8)
-    --
-    --     if snap ~= nil then
-    --         love.graphics.setColor(0, 0, 0)
-    --         love.graphics.setLineWidth(8)
-    --         love.graphics.line(target.vert[1], target.vert[2], snap[1], snap[2])
-    --     end
-    -- end
+    local vertex_count = draw_mesh()
+
+    -- Draw all entities
+    for i, ent in ipairs(map.entities) do
+        ent:draw()
+    end
 
     -- Draw the box we're currently selecting in
     if box_select then
