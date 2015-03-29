@@ -3,6 +3,7 @@ local open_settings = require "mapedit.settings"
 entities = require "mapedit.entities"
 
 local enable_mesh = true
+local enable_path = true
 local enable_ents = true
 
 local vertices, polygons
@@ -153,7 +154,8 @@ end
 
 local function clear_map()
     map = {
-        entities = {}
+        entities = {},
+        paths = {}
     }
 
     view = {0, 0}
@@ -217,6 +219,12 @@ local function save_map(filename)
         data = data .. "e " .. name .. " " .. line .. "\n"
     end
 
+    for i, path in ipairs(map.paths) do
+        for i, node in ipairs(path.nodes) do
+            data = data .. "n " .. node[1] .. " " .. node[2] .. " " .. path.name .. "\n"
+        end
+    end
+
     for i, vert in pairs(vertices) do
         vert_id[vert] = vert_next
         vert_next = vert_next + 1
@@ -274,9 +282,11 @@ local function open_map(filename, translate_to)
     end
 
     clear_map()
-    local verts = {}
-    local iter
 
+    local verts = {}
+    local paths = {}
+
+    local iter
     if abs then
         iter = io.lines()
     else
@@ -301,6 +311,20 @@ local function open_map(filename, translate_to)
             end
 
             table.insert(polygons, {a, b, c})
+        elseif line:sub(1, 2) == "n " then
+            local x, y, name = line:match("([^ ]+) ([^ ]+) (.*)", 3)
+
+            if paths[name] == nil then
+                paths[name] = {
+                    name = name,
+                    nodes = {}
+                }
+
+                table.insert(map.paths, paths[name])
+            end
+
+            -- storing path in here is really poor.
+            table.insert(paths[name].nodes, {tonumber(x), tonumber(y), paths[path]})
         elseif line:sub(1, 2) == "e " then
             local name, rest = line:match("([^ ]+) ?(.*)", 3)
 
@@ -379,41 +403,73 @@ end
 
 local function perform_delete(mode)
     local deleted = false
-    local test
 
-    if mode == "vert" then
-        test = function(poly)
-            return selection[poly[1]] or selection[poly[2]] or selection[poly[3]]
+    if enable_mesh then
+        local test
+
+        if mode == "vert" then
+            test = function(poly)
+                return selection[poly[1]] or selection[poly[2]] or selection[poly[3]]
+            end
+        elseif mode == "edge" then
+            test = function(poly)
+                return
+                    (selection[poly[1]] and selection[poly[2]]) or
+                    (selection[poly[2]] and selection[poly[3]]) or
+                    (selection[poly[3]] and selection[poly[1]])
+            end
+        elseif mode == "poly" then
+            test = function(poly)
+                return selection[poly[1]] and selection[poly[2]] and selection[poly[3]]
+            end
+        else
+            error("unknown delete mode " .. mode)
         end
-    elseif mode == "edge" then
-        test = function(poly)
-            return
-                (selection[poly[1]] and selection[poly[2]]) or
-                (selection[poly[2]] and selection[poly[3]]) or
-                (selection[poly[3]] and selection[poly[1]])
+
+        for i=#polygons, 1, -1 do
+            if test(polygons[i]) then
+                table.remove(polygons, i)
+                deleted = true
+            end
         end
-    elseif mode == "poly" then
-        test = function(poly)
-            return selection[poly[1]] and selection[poly[2]] and selection[poly[3]]
-        end
-    else
-        error("unknown delete mode " .. mode)
     end
 
-    for i=#polygons, 1, -1 do
-        if test(polygons[i]) then
-            table.remove(polygons, i)
-            deleted = true
+    -- Baaaaaad
+    if enable_path then
+        for value, yes in pairs(selection) do
+            if value[3] ~= nil then
+                local path = value[3]
+
+                for i, node in ipairs(path.nodes) do
+                    if node == value then
+                        table.remove(path.nodes, i)
+                        deleted = true
+                        break
+                    end
+                end
+
+                if #path.nodes < 1 then
+                    for i, test in ipairs(map.paths) do
+                        if path == test then
+                            table.remove(map.paths, i)
+                            break
+                        end
+                    end
+                end
+            end
         end
     end
 
-    for value, yes in pairs(selection) do
-        -- Bad way of checking whether or not it is an entity
-        if getmetatable(value) ~= nil then
-            for i, ent in ipairs(map.entities) do
-                if ent == value then
-                    table.remove(map.entities, i)
-                    break
+    if enable_ents then
+        for value, yes in pairs(selection) do
+            -- Bad way of checking whether or not it is an entity
+            if getmetatable(value) ~= nil then
+                for i, ent in ipairs(map.entities) do
+                    if ent == value then
+                        table.remove(map.entities, i)
+                        deleted = true
+                        break
+                    end
                 end
             end
         end
@@ -437,6 +493,24 @@ local function update_target()
             if ent:is_hover(x, y) then
                 target = {type = "ent", ent = ent}
                 return
+            end
+        end
+    end
+
+    if enable_path then
+        for i, path in ipairs(map.paths) do
+            for j, node in ipairs(path.nodes) do
+                if util.dist2(x, y, node[1], node[2]) <= 64 then
+                    target = {
+                        type = "node",
+                        path = path,
+                        node = node,
+                        i = i,
+                        j = j
+                    }
+
+                    return
+                end
             end
         end
     end
@@ -471,6 +545,36 @@ local function update_target()
     end
 
     target = {}
+end
+
+local function draw_path()
+    love.graphics.setLineWidth(2)
+
+    for i, path in ipairs(map.paths) do
+        local prev = nil
+        love.graphics.setColor(255, 255, 255)
+
+        for i, node in ipairs(path.nodes) do
+            if prev ~= nil then
+                love.graphics.line(prev[1], prev[2], node[1], node[2])
+            end
+
+            prev = node
+        end
+
+        -- This double loop is really bad
+        for i, node in ipairs(path.nodes) do
+            if is_selected(node) then
+                love.graphics.setColor( 50, 100, 200)
+            elseif target.type == "node" and target.node == node then
+                love.graphics.setColor( 50, 200,  50)
+            else
+                love.graphics.setColor(255, 255, 255)
+            end
+
+            love.graphics.circle("fill", node[1], node[2], 8, 16)
+        end
+    end
 end
 
 local function draw_mesh()
@@ -667,6 +771,11 @@ function love.load()
                 target = {}
                 mode = nil
             end)
+            menu:AddOption("Toggle paths", false, function()
+                enable_path = not enable_path
+                target = {}
+                mode = nil
+            end)
             menu:AddOption("Toggle entities", false, function()
                 enable_ents = not enable_ents
                 target = {}
@@ -829,12 +938,38 @@ function love.keypressed(key, unicode)
             end
         elseif key == "d" then
             selection = {}
-        -- elseif key == "f" then
-        --     for i, poly in pairs(polygons) do
-        --         if util.area2(poly) < 0 then
-        --             poly[1], poly[2], poly[3] = poly[3], poly[2], poly[1]
-        --         end
-        --     end
+        elseif key == "p" then
+            -- need a better way of creating new nodes.
+            -- This is really bad
+            local x, y = translate_mouse(love.mouse.getPosition())
+            local active = next(selection)
+            local path, auto
+
+            if active ~= nil and next(selection, active) ~= nil then
+                active = nil -- Check if this is the only selected thing
+            end
+
+            if active ~= nil and active[3] ~= nil then
+                path = active[3]
+                auto = true
+            else
+                path = {
+                    name = "path" .. #map.paths,
+                    nodes = {}
+                }
+
+                table.insert(map.paths, path)
+                auto = false
+            end
+
+            -- storing path in here is really poor.
+            table.insert(path.nodes, {x, y, path})
+
+            if auto then
+                selection = {[path.nodes[#path.nodes]] = true}
+            end
+
+            update_target()
         end
     else
         if key == "escape" then
@@ -945,15 +1080,29 @@ function love.mousereleased(x, y, button)
                 y1, y2 = y2, y1
             end
 
-            for i, vert in pairs(vertices) do
-                if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
-                    selection[vert] = true
+            if enable_mesh then
+                for i, vert in pairs(vertices) do
+                    if vert[1] >= x1 and vert[2] >= y1 and vert[1] <= x2 and vert[2] <= y2 then
+                        selection[vert] = true
+                    end
                 end
             end
 
-            for i, ent in ipairs(map.entities) do
-                if ent.x >= x1 and ent.y >= y1 and ent.x <= x2 and ent.y <= y2 then
-                    selection[ent] = true
+            if enable_path then
+                for i, path in ipairs(map.paths) do
+                    for i, node in ipairs(path.nodes) do
+                        if node[1] >= x1 and node[2] >= y1 and node[1] <= x2 and node[2] <= y2 then
+                            selection[node] = true
+                        end
+                    end
+                end
+            end
+
+            if enable_ents then
+                for i, ent in ipairs(map.entities) do
+                    if ent.x >= x1 and ent.y >= y1 and ent.x <= x2 and ent.y <= y2 then
+                        selection[ent] = true
+                    end
                 end
             end
 
@@ -973,6 +1122,8 @@ function love.mousereleased(x, y, button)
                 selection[target.poly[3]] = true
             elseif target.type == "ent" then
                 selection[target.ent] = true
+            elseif target.type == "node" then
+                selection[target.node] = true
             end
         elseif mode == "move-vertex" then
             target.vert[1] = x
@@ -1092,6 +1243,12 @@ function love.mousemoved(x, y, dx, dy)
 
             mode = "move-ent"
             become_dirty()
+        elseif target.type == "node" then
+            target.move_x = x - target.node[1]
+            target.move_y = y - target.node[2]
+
+            mode = "move-node"
+            become_dirty()
         end
     end
 
@@ -1119,6 +1276,9 @@ function love.mousemoved(x, y, dx, dy)
     elseif mode == "move-ent" then
         target.ent.x = x - target.move_x
         target.ent.y = y - target.move_y
+    elseif mode == "move-node" then
+        target.node[1] = x - target.move_x
+        target.node[2] = y - target.move_y
     end
 end
 
@@ -1140,6 +1300,10 @@ function love.draw()
         vertex_count = draw_mesh()
     else
         vertex_count = "badly implemented"
+    end
+
+    if enable_path then
+        draw_path()
     end
 
     -- Draw all entities
