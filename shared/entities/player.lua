@@ -18,10 +18,12 @@ function player:new(name)
     new.px = sx
     new.py = sy
     new.speed = 170
-    new.health = 100
+    new.health_max = 100
+    new.health = new.health_max
     new.team = false
 
     if is_client then
+        new.health_buffer = 0
         new._name_font = get_resource(love.graphics.newFont, 14)
     end
 
@@ -30,7 +32,7 @@ end
 
 function player:pack(initial)
     if initial then
-        return {self.name, self.team, self.health, pathedentity.pack(self, true)}
+        return {self.name, self.team, self.health, self.health_max, pathedentity.pack(self, true)}
     else
         return {self.health, pathedentity.pack(self, false)}
     end
@@ -41,10 +43,15 @@ function player:unpack(t, initial)
         self.name = t[1]
         self.team = t[2]
         self.health = t[3]
-        pathedentity.unpack(self, t[4], true)
+        self.health_max = t[4]
+        pathedentity.unpack(self, t[5], true)
     else
+        local old = self.health
         self.health = t[1]
         pathedentity.unpack(self, t[2], false)
+
+        local delta = old - self.health
+        self.health_buffer = math.max(0, math.min(self.health_max - self.health, self.health_buffer + delta))
     end
 end
 
@@ -60,10 +67,18 @@ function player:damage(hp)
     end
 end
 
+function player:update(dt)
+    if is_client then
+        self.health_buffer = math.max(0, self.health_buffer - dt * 25)
+    end
+
+    pathedentity.update(self, dt)
+end
+
 function player:draw()
     pathedentity.draw(self)
 
-    if debug_nav then
+    if debug_nav then -- Draw the plane we're in if any
         local plane = self:get_world_plane()
 
         if plane ~= nil then
@@ -72,6 +87,7 @@ function player:draw()
         end
     end
 
+    -- This draws aim direction
     -- love.graphics.setColor(255, 255, 255)
     -- love.graphics.setLineWidth(2)
     -- love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
@@ -98,22 +114,32 @@ function player:draw()
     -- love.graphics.setColor(255, 255, 255)
     -- love.graphics.circle("line", self.px, self.py, 8)
 
+    -- Draw health bar
     local width = 64
     local height = 12
     local spacing = 16
 
-    local hp = self.health / 100
+    local hp = self.health / self.health_max
 
+    -- Background
     love.graphics.setColor(127, 127, 127)
     love.graphics.rectangle("fill",
         self.px - width / 2, self.py - 4 - spacing - height,
         width, height)
 
+    -- Lost health
     love.graphics.setColor(255, 50, 50)
+    love.graphics.rectangle("fill",
+        self.px - width / 2 + width * hp, self.py - 4 - spacing - height,
+        width * (self.health_buffer / self.health_max), height)
+
+    -- Current health
+    love.graphics.setColor(50, 255, 50)
     love.graphics.rectangle("fill",
         self.px - width / 2, self.py - 4 - spacing - height,
         width * hp, height)
 
+    -- Outline
     love.graphics.setColor(255, 255, 255)
     love.graphics.setLineWidth(2)
     love.graphics.rectangle("line",
@@ -126,7 +152,7 @@ function player:draw()
     end
 end
 
-function player:use_ability(i, x, y)
+function player:use_ability(which, x, y)
     self.path = nil
     self.path_progress = 0
 
@@ -139,7 +165,7 @@ function player:use_ability(i, x, y)
 
     update_entity(self)
 
-    if i == 1 then
+    if which == 1 then
         local p = entities.projectile:new()
 
         -- Try to target
@@ -163,7 +189,7 @@ function player:use_ability(i, x, y)
         p.vy = self.vy
 
         add_entity(p)
-    elseif i == 2 then
+    elseif which == 2 then
         local target
 
         -- Try to target
@@ -192,7 +218,7 @@ function player:use_ability(i, x, y)
         p.py = self.py + self.vy * 8
 
         add_entity(p)
-    elseif i == 3 then
+    elseif which == 3 then
         local minion = entities.minion:new(x, y)
         add_entity(minion)
     end
