@@ -164,6 +164,7 @@ local function clear_map()
 
     target = {}
     selection = {}
+    mode = nil
     box_select = nil
 end
 
@@ -185,9 +186,13 @@ local function new_map()
 end
 
 local function save_map(filename)
-    local path = love.path.normalslashes(filename)
-    path = path:sub(0, -#love.path.leaf(filename) - 1)
-    love.filesystem.createDirectory(path)
+    local abs = love.path.abs(filename)
+
+    if not abs then
+        local path = love.path.normalslashes(filename)
+        path = path:sub(0, -#love.path.leaf(filename) - 1)
+        love.filesystem.createDirectory(path)
+    end
 
     data = ""
 
@@ -236,7 +241,12 @@ local function save_map(filename)
         data = data .. "p " .. a .. " " .. b .. " " .. c .. "\n"
     end
 
-    love.filesystem.write(filename, data)
+    if abs then
+        io.open(filename, "w"):write(data)
+    else
+        love.filesystem.write(filename, data)
+    end
+
     love.window.setTitle(filename .. " - mapedit")
 
     map.filename = filename
@@ -249,15 +259,32 @@ local function save_map(filename)
 end
 
 local function open_map(filename, translate_to)
-    if not love.filesystem.isFile(filename) then
+    local abs = love.path.abs(filename)
+
+    if abs then
+        status, result = pcall(function() io.input(filename) end)
+
+        if not status then
+            message_box("Error", "Map file '" .. filename .. "' does not exist")
+            return false
+        end
+    elseif not love.filesystem.isFile(filename) then
         message_box("Error", "Map file '" .. filename .. "' does not exist")
         return false
     end
 
     clear_map()
     local verts = {}
+    local iter
 
-    for line in love.filesystem.lines(filename) do
+    if abs then
+        iter = io.lines()
+    else
+        iter = love.filesystem.lines(filename)
+    end
+
+    -- for line in love.filesystem.lines(filename) do
+    for line in iter do
         if line:sub(1, 2) == "v " then
             x, y = line:match("(.*) (.*)", 3)
             local vert = {tonumber(x), tonumber(y)}
@@ -724,7 +751,12 @@ function love.load()
     statustext:SetPos(4, 3)
 
     ui_font = love.graphics.newFont(12)
-    new_map()
+
+    if love.path.abs(arg[#arg]) then
+        open_map(arg[#arg])
+    else
+        new_map()
+    end
 
     window = {
         entities = require "mapedit.window-entities"

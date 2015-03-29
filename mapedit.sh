@@ -1,2 +1,3 @@
 #!/bin/sh
-love . --mapedit
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+love . --mapedit $@
