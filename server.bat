@@ -1,2 +1,2 @@
 @echo off
-start "" "C:\Program Files\LOVE\love.exe" . server
+start "" "C:\Program Files\LOVE\love.exe" . --server

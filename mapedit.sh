@@ -1,2 +1,2 @@
 #!/bin/sh
-love . mapedit
+love . --mapedit

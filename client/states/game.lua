@@ -123,7 +123,7 @@ function game:update(dt)
 
             print("Disconnected from server" .. reason)
 
-            if args.local_loop then
+            if args.connect.set then
                 love.event.quit()
             else
                 gamestate.switch(states.menu)

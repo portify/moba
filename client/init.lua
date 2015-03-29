@@ -14,8 +14,8 @@ states = {
 function love.load()
     gamestate.registerEvents()
 
-    if args.local_loop then
-        gamestate.switch(states.connecting, "127.0.0.1:6788")
+    if args.connect.set then
+        gamestate.switch(states.connecting, args.connect[1])
     else
         gamestate.switch(states.menu)
     end

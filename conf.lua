@@ -1,15 +1,41 @@
 -- Parse command-line arguments
-args = {}
+args = {
+    ["mapedit"] = {},
+    ["server"] = {},
+    ["listen"] = {n = 1},
+    ["map"] = {n = 1},
+    ["quit-on-empty"] = {},
+    ["connect"] = {n = 1}
+}
 
 do
-    local i = 2
-
-    if arg[1] == "--console" then
-        i = i + 1
-    end
+    local i = 1
+    local loving = true
 
     while i <= #arg do
-        args[arg[i]] = true
+        local s, e, m = string.find(arg[i], "%-%-(.+)")
+
+        if loving then
+            if m == "console" or m == "fused" then
+            elseif m == "game" then
+                i = i + 1
+            else
+                loving = false
+            end
+        elseif args[m] ~= nil then
+            args[m].set = true
+
+            if args[m].n ~= nil then
+                for j=1, args[m].n do
+                    args[m][j] = arg[i + j]
+                end
+
+                i = i + args[m].n
+            end
+        else
+            --
+        end
+
         i = i + 1
     end
 end
@@ -18,13 +44,13 @@ end
 local serialize = require "lib/ser"
 local context
 
-if args.mapedit then
+if args.mapedit.set then
     context = "mapedit"
     config = {
         enable_fps_warning = true,
         ui_skin = "Blue"
     }
-elseif args.server then
+elseif args.server.set then
     context = "server"
 
     config = {
@@ -72,16 +98,16 @@ end
 
 love.filesystem.write(config_file, serialize(config))
 
-if not args.server then
+if not args.server.set then
     require "lib/cupid"
 end
 
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"
-    t.console = not not args.server
+    t.console = not not args.server.set
 
-    if args.mapedit then
+    if args.mapedit.set then
         t.window.title = "mapedit"
         t.window.width = 1280
         t.window.height = 720
@@ -89,7 +115,7 @@ function love.conf(t)
         t.window.minwidth = 640
         t.window.minheight = 480
         -- t.window.vsync = false
-    elseif args.server then
+    elseif args.server.set then
         t.window = nil
 
         t.modules.audio    = false

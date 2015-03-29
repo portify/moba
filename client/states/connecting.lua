@@ -82,7 +82,7 @@ end
 function connecting:keypressed()
     self.server:reset()
 
-    if args.local_loop then
+    if args.connect.set then
         love.event.quit()
     else
         gamestate.switch(states.menu)

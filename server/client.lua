@@ -79,8 +79,19 @@ function client:disconnected(data)
 
     print(self.peer:index() .. " disconnected")
 
-    if args.local_loop then
-        love.event.quit()
+    if args["quit-on-empty"].set then
+        local others = false
+
+        for i, cl in ipairs(server.clients) do
+            if cl ~= self then
+                others = true
+                break
+            end
+        end
+
+        if not others then
+            love.event.quit()
+        end
     end
 end
 

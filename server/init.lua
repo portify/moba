@@ -21,7 +21,15 @@ local world = require("shared/world")
 require "shared/entities"
 
 function love.load()
-    local address = (config.public and "*:" or "localhost:") .. config.port
+    local address
+
+    if args.listen.set then
+        address = args.listen[1]
+    else
+        address = (config.public and "*:" or "localhost:") .. config.port
+    end
+
+    local map = args.map[1] or config.startup_map or "default"
 
     server = {
         clients = {},
@@ -31,7 +39,7 @@ function love.load()
         next_id = 0,
         host = enet.host_create(address, config.peer_count, CHANNEL_COUNT,
             config.bandwidth_in, config.bandwidth_out),
-        world = world:new("maps/" .. config.startup_map .. ".textmap")
+        world = world:new("maps/" .. map .. ".textmap")
     }
 
     function server:by_id(id)
