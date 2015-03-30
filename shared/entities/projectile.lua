@@ -65,19 +65,19 @@ function projectile:new(type)
     return new
 end
 
-function projectile:pack(initial)
-    if initial then
+function projectile:pack(type)
+    if type == PACK_TYPE.INITIAL then
         return {self.px, self.py, self.type, self.vx, self.vy, self.speed, self.target, self.unescapeable}
     else
         return {self.px, self.py}
     end
 end
 
-function projectile:unpack(t, initial)
+function projectile:unpack(t, type)
     self.px = t[1]
     self.py = t[2]
 
-    if initial then
+    if type == PACK_TYPE.INITIAL then
         self.type = t[3]
 
         if self.types[self.type] ~= nil then

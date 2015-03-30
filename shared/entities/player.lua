@@ -33,6 +33,7 @@ function player:new(name)
     new.name = name
     new.speed = 170
     new.team = false
+    new.cooldown = {}
     new.health_max = 300
     new.health = new.health_max
     new.mana_max = 300
@@ -56,38 +57,66 @@ function player:new(name)
         new.quad_bar_mana = love.graphics.newQuad(0, 0, w, h, w, h)
         w, h = new.image_bar_xp:getDimensions()
         new.quad_bar_xp = love.graphics.newQuad(0, h, w, 0, w, h)
-    else
-        new.xp = 50
     end
 
     return new
 end
 
-function player:pack(initial)
-    if initial then
+function player:is_alive()
+    return self.health > 0
+end
+
+function player:play_move(duration, vertices, no_update)
+    if duration == nil then
+        self.move_duration = nil
+        self.move_elapsed = nil
+        self.move_curve = nil
+
+        if not is_client then
+            self.move_vertices = nil
+        end
+    else
+        self.move_duration = duration
+        self.move_elapsed = 0
+        self.move_curve = love.math.newBezierCurve(vertices)
+
+        if not is_client then
+            self.move_vertices = vertices
+        end
+    end
+
+    if not is_client and not no_update then
+        update_entity(self, PACK_TYPE.MOVE_ANIM)
+    end
+end
+
+function player:pack(type)
+    if type == PACK_TYPE.INITIAL then
         return {
             self.name, self.team,
             self.health, self.health_max,
             self.mana, self.mana_max,
             self.xp,
-            pathedentity.pack(self, true)
+            pathedentity.pack(self, type)
         }
+    elseif type == PACK_TYPE.MOVE_ANIM then
+        return {self.move_duration, self.move_vertices}
     else
         return {
             self.health,
             self.mana,
             self.xp,
-            pathedentity.pack(self, false)
+            pathedentity.pack(self, type)
         }
     end
 end
 
-function player:unpack(t, initial)
+function player:unpack(t, type)
     local health = self.health
     local mana = self.mana
     local xp = self.xp
 
-    if initial then
+    if type == PACK_TYPE.INITIAL then
         self.name = t[1]
         self.team = t[2]
         self.health = t[3]
@@ -95,13 +124,15 @@ function player:unpack(t, initial)
         self.mana = t[5]
         self.mana_max = t[6]
         self.xp = t[7]
-        pathedentity.unpack(self, t[8], true)
+        pathedentity.unpack(self, t[8], type)
+    elseif type == PACK_TYPE.MOVE_ANIM then
+        self:play_move(t[1], t[2])
     else
         self.health = t[1]
         self.health_anim = math.max(self.health, self.health_anim)
         self.mana = t[2]
         self.xp = t[3]
-        pathedentity.unpack(self, t[4], false)
+        pathedentity.unpack(self, t[4], type)
     end
 
     if self.health < health then
@@ -151,7 +182,42 @@ function player:damage(hp)
     end
 end
 
+function player:get_draw_pos()
+    local x, y = 0, 0
+
+    if self.move_curve ~= nil then
+        local t = self.move_elapsed / self.move_duration
+        x, y = self.move_curve:evaluate(t)
+    end
+
+    return self.px + x, self.py + y
+end
+
 function player:update(dt)
+    if self.move_curve ~= nil then
+        self.move_elapsed = self.move_elapsed + dt
+
+        if self.move_elapsed > self.move_duration then
+            self.move_curve = nil
+            self.move_elapsed = nil
+            self.move_duration = nil
+
+            if not is_client then
+                self.move_vertices = nil
+            end
+        end
+    end
+
+    for i=1, 4 do
+        if self.cooldown[i] ~= nil then
+            self.cooldown[i] = self.cooldown[i] - dt
+
+            if self.cooldown[i] <= 0 then
+                self.cooldown[i] = nil
+            end
+        end
+    end
+
     if self.health < self.health_max then
         self.health = math.min(self.health_max, self.health + dt * 5)
 
@@ -216,11 +282,13 @@ function player:draw()
         r, g, b = 200, 200, 200
     end
 
+    local x, y = self:get_draw_pos()
+
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
+    love.graphics.circle("fill", x, y, self.radius, self.radius * 2)
     love.graphics.setLineWidth(2)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
+    love.graphics.circle("line", x, y, self.radius, self.radius * 2)
 
     self:draw_ui()
 end
@@ -329,7 +397,19 @@ function player:draw_minimap()
     love.graphics.circle("line", self.px, self.py, self.radius * 8)
 end
 
+function player:move_to(x, y)
+    if self.move_curve then
+        self:play_move()
+    end
+
+    pathedentity.move_to(self, x, y)
+end
+
 function player:use_ability(which, x, y)
+    if self.cooldown[which] then
+        return
+    end
+
     self.path = nil
     self.path_progress = 0
 
@@ -354,7 +434,7 @@ function player:use_ability(which, x, y)
         p.life = 3
         p.speed = 500
         p.radius = 8
-        p.damage = 16
+        p.damage = 48
         p.px = self.px + self.vx * 8
         p.py = self.py + self.vy * 8
         p.vx = self.vx
@@ -362,6 +442,7 @@ function player:use_ability(which, x, y)
 
         add_entity(p)
         self.mana = self.mana - 10
+        self.cooldown[1] = 1.75
         update_entity(self)
     elseif which == 2 then
         if self.mana < 15 then
@@ -392,18 +473,29 @@ function player:use_ability(which, x, y)
         p.life = -1
         p.speed = 200
         p.radius = 8
-        p.damage = 8
+        p.damage = 70
         p.px = self.px + self.vx * 8
         p.py = self.py + self.vy * 8
 
         add_entity(p)
         self.mana = self.mana - 15
+        self.cooldown[2] = 3
         update_entity(self)
     elseif which == 3 then
         local minion = entities.minion:new(x, y)
         minion.team = 0
         minion:begin_a_quest(next(server.world.paths))
         add_entity(minion)
+    elseif which == 4 then
+        self:play_move(0.5, {
+            0, 0,
+            self.vx * -12, self.vy * -12,
+            self.vx *  24, self.vy *  24,
+            self.vx *   4, self.vy *   4,
+            0, 0
+        })
+
+        self.cooldown[4] = 0.5
     end
 end
 

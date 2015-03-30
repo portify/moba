@@ -20,3 +20,9 @@ EVENT = enum {
     "MOVE_TO",
     "USE_ABILITY"
 }
+
+PACK_TYPE = enum {
+    "INITIAL",
+    "GENERIC",
+    "MOVE_ANIM"
+}

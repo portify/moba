@@ -24,8 +24,8 @@ return function(game)
                 if data.e == EVENT.ENTITY_ADD then
                     data.e = nil
 
-                    for id, params in pairs(data) do
-                        local type = entity_from_id(params.t)
+                    for i, entry in pairs(data) do
+                        local type = entity_from_id(entry.t)
 
                         if not type.__ran_client_init then
                             if type.client_init then
@@ -36,10 +36,10 @@ return function(game)
                         end
 
                         local ent = type:new()
-                        self.entities[id] = ent
-                        ent.__id = id
+                        self.entities[entry.i] = ent
+                        ent.__id = entry.i
                         ent:added()
-                        ent:unpack(params.d, true)
+                        ent:unpack(entry.d, PACK_TYPE.INITIAL)
                     end
                 elseif data.e == EVENT.ENTITY_REMOVE then
                     for i, id in ipairs(data) do
@@ -52,8 +52,10 @@ return function(game)
                 elseif data.e == EVENT.ENTITY_UPDATE then
                     data.e = nil
 
-                    for id, packed in pairs(data) do
-                        self.entities[id]:unpack(packed, false)
+                    for i, entry in ipairs(data) do
+                        if self.entities[entry.i] ~= nil then
+                            self.entities[entry.i]:unpack(entry.d, entry.t)
+                        end
                     end
                 elseif data.e == EVENT.ENTITY_CONTROL then
                     if data.i == nil then

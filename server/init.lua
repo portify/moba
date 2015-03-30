@@ -15,8 +15,9 @@ function love.errhand(msg)
     end
 end
 
-local client = require("server/client")
-local world = require("shared/world")
+local client = require "server.client"
+local game = require "server.game"
+local world = require "shared.world"
 
 require "shared/entities"
 
@@ -122,6 +123,17 @@ function love.update(dt)
             i = i + 1
         end
     end
+
+    game.update(dt)
+
+    -- if server.pending_update then
+    --     for i, cl in pairs(server.clients) do
+    --         cl:send(server.pending_update)
+    --     end
+    --
+    --     server.pending_update = nil
+    --     server.pending_update_index = nil
+    -- end
 end
 
 function add_entity(ent)
@@ -138,10 +150,15 @@ function add_entity(ent)
     for i, cl in pairs(server.clients) do
         cl:send({
             e = EVENT.ENTITY_ADD,
-            [ent.__id] = {
+            {
+                i = ent.__id,
                 t = id_from_entity(getmetatable(ent)),
-                d = ent:pack(true)
+                d = ent:pack(PACK_TYPE.INITIAL)
             }
+            -- [ent.__id] = {
+            --     t = id_from_entity(getmetatable(ent)),
+            --     d = ent:pack(PACK_TYPE.INITIAL)
+            -- }
         })
     end
 
@@ -166,17 +183,56 @@ function remove_entity(ent)
     return nil
 end
 
-function update_entity(ent)
-    if ent.hook_update ~= nil then
-        ent:hook_update()
+function update_entity(ent, type)
+    if type == nil then
+        type = PACK_TYPE.GENERIC
     end
 
-    if ent.__id == nil then return end
+    if ent.hook_update ~= nil then
+        ent:hook_update(type)
+    end
+
+    if ent.__id == nil then
+        return
+    end
+
+    -- if server.pending_update == nil then
+    --     server.pending_update = {
+    --         e = EVENT.ENTITY_UPDATE
+    --     }
+    --
+    --     server.pending_update_index = {}
+    -- end
+    --
+    -- if server.pending_update_index[ent] ~= nil then
+    --     if server.pending_update_index[ent][type] ~= nil then
+    --         server.pending_update_index[ent][type].d = ent:pack(type)
+    --         return
+    --     end
+    -- end
+    --
+    -- local entry = {
+    --     i = ent.__id,
+    --     t = type,
+    --     d = ent:pack(type)
+    -- }
+    --
+    -- table.insert(server.pending_update, entry)
+    --
+    -- if server.pending_update_index[ent] == nil then
+    --     server.pending_update_index[ent] = {}
+    -- end
+    --
+    -- server.pending_update_index[ent][type] = entry
 
     for i, cl in pairs(server.clients) do
         cl:send({
             e = EVENT.ENTITY_UPDATE,
-            [ent.__id] = ent:pack(false)
+            {
+                i = ent.__id,
+                t = type,
+                d = ent:pack(type)
+            }
         })
     end
 end

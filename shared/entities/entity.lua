@@ -7,11 +7,11 @@ end
 function entity:removed()
 end
 
-function entity:pack()
+function entity:pack(type)
     return false
 end
 
-function entity:unpack(t)
+function entity:unpack(t, type)
     assert(t == false, "invalid unpack")
 end
 

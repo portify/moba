@@ -20,17 +20,17 @@ function pathedentity:new()
     }, self)
 end
 
-function pathedentity:pack(initial)
+function pathedentity:pack(type)
     local t = {self.px, self.py, self.vx, self.vy, self.path, self.path_progress}
 
-    if initial then
+    if type == PACK_TYPE.INITIAL then
         t[7] = self.speed
     end
 
     return t
 end
 
-function pathedentity:unpack(t, initial)
+function pathedentity:unpack(t, type)
     self.px = t[1]
     self.py = t[2]
     self.vx = t[3]
@@ -38,7 +38,7 @@ function pathedentity:unpack(t, initial)
     self.path = t[5]
     self.path_progress = t[6]
 
-    if initial then
+    if type == PACK_TYPE.INITIAL then
         self.speed = t[7]
     end
 end
@@ -54,6 +54,10 @@ function pathedentity:get_world_plane()
 end
 
 function pathedentity:update(dt)
+    if self.path ~= nil and #self.path == 1 then
+        self.path = nil
+    end
+    
     if self.path ~= nil then
         local a = self.path[#self.path]
         local b = self.path[#self.path - 1]
@@ -106,54 +110,69 @@ function pathedentity:update_camera(camera, dt)
     camera:rotateTo(0)
 end
 
-function pathedentity:move_to(x, y)
+function pathedentity:move_to(x2, y2, append)
     local world = self:get_world_instance()
-    local b = world:get_plane(x, y)
+    local b = world:get_plane(x2, y2)
 
     if b == nil and self.use_outside_snap then
-        local point, distance
-        b, point, distance = world:project(x, y)
+        local point
+        b, point = world:project(x2, y2)
 
         if point ~= nil then
-            x, y = point[1], point[2]
+            x2, y2 = point[1], point[2]
         end
     end
 
     if b ~= nil then
+        local x1, y1 = self.px, self.py
         local a = self:get_world_plane()
+
         local path
 
-        if a == nil and self.allow_direct_move then
-            path = {
-                {x, y},
-                {self.px, self.py}
-            }
-        else
+        if a == nil then
+            local point
+            a, point = world:project(x1, y1)
+
+            if point ~= nil then
+                x1, y1 = point[1], point[2]
+            end
+        end
+
+        if a ~= nil then
             local planes = a:find_path(b)
 
             if planes ~= nil then
                 if self.use_funnel then
                     path = {}
-                    funnel({self.px, self.py}, {x, y}, planes, path)
+                    funnel({x1, y1}, {x2, y2}, planes, path)
                 else
-                    path = {{x, y}}
+                    path = {{x2, y2}}
 
                     for i, plane in ipairs(planes) do
                         table.insert(path, {plane:center()})
                     end
 
-                    table.insert(path, {self.px, self.py})
+                    table.insert(path, {x1, y1})
                 end
             end
         end
 
-        self.path = path
-        self.path_progress = 0
+        if append then
+            if path ~= nil then
+                for i=2, #path do
+                    table.insert(self.path, path[i])
+                end
+            end
+        else
+            self.path = path
+        end
 
+        self.path_progress = 0
         update_entity(self)
-        return self.path ~= nil
+        return path ~= nil
     end
 
+    update_entity(self)
     return false
 end
 

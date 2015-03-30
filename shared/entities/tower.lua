@@ -56,16 +56,20 @@ function tower:from_map(line)
     return new
 end
 
-function tower:pack(initial)
-    if initial then
+function tower:is_alive()
+    return self.health > 0
+end
+
+function tower:pack(type)
+    if type == PACK_TYPE.INITIAL then
         return {self.team, self.px, self.py}
     else
         return {self.active_target, self.health}
     end
 end
 
-function tower:unpack(t, initial)
-    if initial then
+function tower:unpack(t, type)
+    if type == PACK_TYPE.INITIAL then
         self.team = t[1]
         self.px = t[2]
         self.py = t[3]
@@ -109,7 +113,7 @@ function tower:update(dt)
 
     if self.active_target == nil then
         for id, ent in pairs(server.entities) do
-            if ent ~= self and ent.is_unit and ent.team ~= self.team then
+            if ent ~= self and ent.is_unit and ent:is_alive() and ent.team ~= self.team then
                 local distance = util.dist(self.px, self.py, ent.px, ent.py)
 
                 if distance <= self.max_player_dist and (self.active_target == nil or distance < lowest) then

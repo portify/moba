@@ -46,21 +46,17 @@ function client:connected()
     self:send({e = EVENT.WORLD, d = server.world:pack()})
 
     -- Send down all current entities that exist
-    -- Make this a bit more efficient now
     local data = {e = EVENT.ENTITY_ADD}
-    local should_send = false
 
     for id, ent in pairs(server.entities) do
-        -- data[id] = {t = ent:get_type_id(), d = ent:pack()}
-        should_send = true
-
-        data[id] = {
+        table.insert(data, {
+            i = id,
             t = id_from_entity(getmetatable(ent)),
-            d = ent:pack(true)
-        }
+            d = ent:pack(PACK_TYPE.INITIAL)
+        })
     end
 
-    if should_send then
+    if #data > 0 then
         self:send(data)
     end
 
