@@ -56,8 +56,12 @@ return function(game)
                         self.entities[id]:unpack(packed, false)
                     end
                 elseif data.e == EVENT.ENTITY_CONTROL then
-                    self.control.value = self.entities[data.i]
-                    self.control.value:update_camera(self.camera)
+                    if data.i == nil then
+                        self.control.value = nil
+                    else
+                        self.control.value = self.entities[data.i]
+                        self.control.value:update_camera(self.camera)
+                    end
                 elseif data.e == EVENT.WORLD then
                     self.world:unpack(data.d)
                     self.entities = {}

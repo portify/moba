@@ -28,9 +28,14 @@ function client:get_control()
 end
 
 function client:set_control(ent)
-    assert(ent.__id ~= nil, "ent has no id")
+    assert(ent == nil or ent.__id ~= nil, "ent has no id")
     self.control.value = ent
-    self:send{e=EVENT.ENTITY_CONTROL, i=ent.__id}
+
+    if ent == nil then
+        self:send{e=EVENT.ENTITY_CONTROL, i=nil}
+    else
+        self:send{e=EVENT.ENTITY_CONTROL, i=ent.__id}
+    end
 end
 
 function client:connected()

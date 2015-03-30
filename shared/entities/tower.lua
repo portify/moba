@@ -147,7 +147,7 @@ function tower:draw()
         -- Draw attack radius outline
         love.graphics.setLineWidth(1)
 
-        if target == control then
+        if control ~= nil and target == control then
             love.graphics.setColor(255, 0, 0, 40)
         else
             love.graphics.setColor(r, g, b, 40)

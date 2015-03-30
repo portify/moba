@@ -124,18 +124,48 @@ function player:unpack(t, initial)
 end
 
 function player:damage(hp)
-    self.health = self.health - hp
+    self.health = math.max(0, math.min(self.health_max, self.health - hp))
 
     if self.health <= 0 then
         self.client.player = nil
-        delay(1, function() self.client:spawn() end)
-        remove_entity(self)
+
+        if self.client:get_control() == self then
+            self.client:set_control(nil)
+        end
+
+        self.path = nil
+        self.path_progress = nil
+
+        update_entity(self)
+
+        delay(0.75, function()
+            delay(1, function() self.client:spawn() end)
+            remove_entity(self)
+        end)
     else
         update_entity(self)
     end
 end
 
 function player:update(dt)
+    if self.health < self.health_max then
+        self.health = math.min(self.health_max, self.health + dt * 5)
+
+        if is_client then
+            local w, h = self.image_bar_health:getDimensions()
+            self.quad_bar_health:setViewport(0, 0, w * (self.health / self.health_max), h)
+        end
+    end
+
+    if self.mana < self.mana_max then
+        self.mana = math.min(self.mana_max, self.mana + dt * 3)
+
+        if is_client then
+            local w, h = self.image_bar_mana:getDimensions()
+            self.quad_bar_mana:setViewport(0, 0, w * (self.mana / self.mana_max), h)
+        end
+    end
+
     if is_client and self.health_anim > self.health then
         local f = dt
 
@@ -215,7 +245,8 @@ function player:draw_ui()
 
     love.graphics.setColor(255, 255, 255)
 
-    while i * step < self.health do
+    -- while i * step < self.health do
+    while i * step < self.health_max do
         local sx = (step / self.health_max) * i * bw - tw / 2
         love.graphics.draw(self.image_bar_tick, x + 16 + sx, y + 17)
         i = i + 1
@@ -303,17 +334,11 @@ function player:use_ability(which, x, y)
     update_entity(self)
 
     if which == 1 then
-        local p = entities.projectile:new()
-
-        -- Try to target
-        for id, ent in pairs(server.entities) do
-            if ent ~= self and getmetatable(ent) == entities.player and
-                (ent.px-x)^2 + (ent.py-y)^2 <= 64
-            then
-                p.target = id
-                break
-            end
+        if self.mana < 10 then
+            return
         end
+
+        local p = entities.projectile:new()
 
         p.ignore[self] = true
         p.team = self.team
@@ -327,7 +352,13 @@ function player:use_ability(which, x, y)
         p.vy = self.vy
 
         add_entity(p)
+        self.mana = self.mana - 10
+        update_entity(self)
     elseif which == 2 then
+        if self.mana < 15 then
+            return
+        end
+
         local target
 
         -- Try to target
@@ -357,6 +388,8 @@ function player:use_ability(which, x, y)
         p.py = self.py + self.vy * 8
 
         add_entity(p)
+        self.mana = self.mana - 15
+        update_entity(self)
     elseif which == 3 then
         local minion = entities.minion:new(x, y)
         minion.team = 0
