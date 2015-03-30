@@ -67,7 +67,7 @@ end
 
 function projectile:pack(initial)
     if initial then
-        return {self.px, self.py, self.type, self.vx, self.vy, self.speed, self.target}
+        return {self.px, self.py, self.type, self.vx, self.vy, self.speed, self.target, self.unescapeable}
     else
         return {self.px, self.py}
     end
@@ -90,7 +90,7 @@ function projectile:unpack(t, initial)
         self.vy = t[5]
         self.speed = t[6]
         self.target = t[7]
-        self.type = t[8]
+        self.unescapeable = t[8]
     end
 end
 
@@ -131,6 +131,15 @@ function projectile:update(dt)
         local d = math.sqrt(dx^2 + dy^2)
         self.vx = dx / d
         self.vy = dy / d
+
+        if self.unescapeable then
+            self.speed = self.speed * (1 + dt / 2)
+        end
+
+        if self.speed * dt >= d then
+            self.speed = d / dt
+        end
+
     elseif not is_client and self.life < 0 then
         remove_entity(self)
         return

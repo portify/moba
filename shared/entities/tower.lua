@@ -130,8 +130,9 @@ function tower:update(dt)
 
             p.ignore[self] = true
             p.target = self.active_target
+            p.unescapeable = true
             p.life = -1
-            p.speed = 150
+            p.speed = 100
             p.radius = 8
             p.damage = 100 * self.damage_scale
             p.px = self.px

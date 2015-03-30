@@ -42,7 +42,11 @@ function player:new(name)
 
     if is_client then
         new.health_anim = new.health
-        new._name_font = get_resource(love.graphics.newFont, 14)
+        -- new._name_font = get_resource(love.graphics.newFont, 14)
+        new._level_font = get_resource(love.graphics.newFont, 14)
+        new._level_font:setFilter("nearest", "nearest", 0)
+        new._name_font = get_resource(love.graphics.newFont, 10)
+        new._name_font:setFilter("nearest", "nearest", 0)
 
         local w, h
         w, h = new.image_bar_health:getDimensions()
@@ -224,8 +228,10 @@ end
 function player:draw_ui()
     local w = self.image_bar_back:getWidth()
     local h = self.image_bar_back:getHeight()
-    local x = math.floor(self.px - w / 2 + 0.5)
-    local y = math.floor(self.py - h - self.radius - 4 + 0.5)
+    -- local x = math.floor(self.px - w / 2 + 0.5)
+    -- local y = math.floor(self.py - h - self.radius - 4 + 0.5)
+    local x = self.px - w / 2
+    local y = self.py - h - self.radius - 4
 
     love.graphics.setColor(255, 255, 255)
     love.graphics.draw(self.image_bar_back, x, y)
@@ -260,7 +266,8 @@ function player:draw_ui()
     -- Level
     local xpx, xpy, xpw, xph = self.quad_bar_xp:getViewport()
     love.graphics.draw(self.image_bar_xp, self.quad_bar_xp, x + 3, y + 3 + xpy)
-    love.graphics.setFont(self._name_font)
+    -- love.graphics.setFont(self._name_font)
+    love.graphics.setFont(self._level_font)
     love.graphics.print(tostring(self.level), x + 8, y + 4)
 
     -- Glass over level
@@ -279,7 +286,8 @@ function player:draw_ui()
 
         love.graphics.setColor(r, g, b)
         love.graphics.setFont(self._name_font)
-        love.graphics.printf(self.name, math.floor(self.px - 200 + 0.5), y - 8 + 6, 400, "center")
+        -- love.graphics.printf(self.name, math.floor(self.px - 200 + 0.5), y - 8 + 6, 400, "center")
+        love.graphics.printf(self.name, x + 26, y - 8 + 6, 61, "left")
     end
 end
 
