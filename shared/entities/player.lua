@@ -152,6 +152,7 @@ function player:update(dt)
         self.health = math.min(self.health_max, self.health + dt * 5)
 
         if is_client then
+            self.health_anim = math.max(self.health, self.health_anim)
             local w, h = self.image_bar_health:getDimensions()
             self.quad_bar_health:setViewport(0, 0, w * (self.health / self.health_max), h)
         end
@@ -338,7 +339,7 @@ function player:use_ability(which, x, y)
             return
         end
 
-        local p = entities.projectile:new()
+        local p = entities.projectile:new("player-basic")
 
         p.ignore[self] = true
         p.team = self.team
@@ -375,7 +376,7 @@ function player:use_ability(which, x, y)
             return
         end
 
-        local p = entities.projectile:new()
+        local p = entities.projectile:new("player-basic")
 
         p.ignore[self] = true
         p.team = self.team

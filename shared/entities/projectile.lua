@@ -4,28 +4,48 @@ local projectile = {}
 projectile.__index = projectile
 setmetatable(projectile, entity)
 
-function projectile:client_init()
-    local image = love.graphics.newImage("assets/cloud.png")
-    local system = love.graphics.newParticleSystem(image, 60)
+projectile.type_loaders = {}
 
-    system:setParticleLifetime(0.4, 0.4)
-    system:setEmissionRate(30)
-    system:setSizes(0.1, 0.2, 0.3)
-    system:setLinearAcceleration(-60, -60, 60, 60)
-    system:setTangentialAcceleration(-256, 256)
-    system:setColors(
-        255, 255, 255, 0,
-        255, 255, 255, 255,
-        255, 255, 255, 255,
-        255, 255, 255, 0)
+function projectile:register_type(name, loader)
+    if self.types ~= nil then
+        error("Cannot call projectile.register_type after projectile.client_init")
+    end
 
-    self.emitter_type = system
-    self.emitter_type:stop()
+    self.type_loaders[name] = loader
 end
 
-function projectile:new()
+function projectile:client_init()
+    self.types = {}
+
+    for name, loader in pairs(self.type_loaders) do
+        self.types[name] = loader(self)
+        self.types[name]:stop()
+    end
+
+    -- local image = love.graphics.newImage("assets/arrow.png")
+    -- local system = love.graphics.newParticleSystem(image, 60)
+    --
+    -- system:setParticleLifetime(0.4, 0.4)
+    -- system:setEmissionRate(50)
+    -- system:setRelativeRotation(true)
+    -- system:setSizes(0.3, 0.2, 0.1)
+    -- --system:setLinearAcceleration(-60, -60, 60, 60)
+    -- --system:setTangentialAcceleration(-256, 256)
+    -- system:setSpeed(5,5)
+    -- system:setColors(
+    --     0, 0, 0, 255,
+    --     0, 0, 0, 128,
+    --     0, 0, 0, 64,
+    --     0, 0, 0, 0)
+    --
+    -- self.emitter_type = system
+    -- self.emitter_type:stop()
+end
+
+function projectile:new(type)
     new = setmetatable({}, self)
 
+    new.type = type
     new.life = 0
     new.speed = 0
     new.radius = 0
@@ -35,9 +55,9 @@ function projectile:new()
     new.team = nil
 
     if is_client then
-        new.emitter = projectile.emitter_type:clone()
-        new.emitter:reset()
-        new.emitter:start()
+        -- new.emitter = projectile.emitter_type:clone()
+        -- new.emitter:reset()
+        -- new.emitter:start()
     else
         new.ignore = {}
     end
@@ -47,7 +67,7 @@ end
 
 function projectile:pack(initial)
     if initial then
-        return {self.px, self.py, self.vx, self.vy, self.speed, self.target}
+        return {self.px, self.py, self.type, self.vx, self.vy, self.speed, self.target}
     else
         return {self.px, self.py}
     end
@@ -58,10 +78,19 @@ function projectile:unpack(t, initial)
     self.py = t[2]
 
     if initial then
-        self.vx = t[3]
-        self.vy = t[4]
-        self.speed = t[5]
-        self.target = t[6]
+        self.type = t[3]
+
+        if self.types[self.type] ~= nil then
+            self.emitter = self.types[self.type]:clone()
+            self.emitter:reset()
+            self.emitter:start()
+        end
+
+        self.vx = t[4]
+        self.vy = t[5]
+        self.speed = t[6]
+        self.target = t[7]
+        self.type = t[8]
     end
 end
 
@@ -140,15 +169,17 @@ function projectile:update(dt)
 end
 
 function projectile:draw()
-    love.graphics.setColor(255, 255, 255)
-    -- love.graphics.draw(self.emitter, self.px, self.py)
-    love.graphics.draw(self.emitter)
+    if self.emitter ~= nil then
+        love.graphics.setColor(255, 255, 255)
+        -- love.graphics.draw(self.emitter, self.px, self.py)
+        love.graphics.draw(self.emitter)
+    end
 
-    love.graphics.setColor(255, 80, 80)
-    love.graphics.circle("fill", self.px, self.py, 7, 14)
-    love.graphics.setLineWidth(2)
-    love.graphics.setColor(255, 160, 160)
-    love.graphics.circle("line", self.px, self.py, 7, 14)
+    -- love.graphics.setColor(255, 80, 80)
+    -- love.graphics.circle("fill", self.px, self.py, 7, 14)
+    -- love.graphics.setLineWidth(2)
+    -- love.graphics.setColor(255, 160, 160)
+    -- love.graphics.circle("line", self.px, self.py, 7, 14)
 end
 
 return projectile

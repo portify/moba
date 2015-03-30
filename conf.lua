@@ -73,8 +73,7 @@ else
             vsync = true,
             fsaa = 0
         },
-        name = "Player",
-        default_server = "127.0.0.1:6788"
+        name = "Player"
     }
 end
 

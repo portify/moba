@@ -33,16 +33,11 @@ return function(game)
             self.move_to_y = nil
         end
 
-        local control = self:get_control()
+        local mp_moved = false
 
-        if control ~= nil and self.camera_locked then
-            control:update_camera(self.camera, dt)
-        elseif not paused and not love.mouse.getRelativeMode() and love.window.hasMouseFocus() then
+        if not paused and not love.mouse.getRelativeMode() and love.window.hasMouseFocus() then
             local mx, my = love.mouse.getPosition()
-            local mp_moved = false
 
-            -- This is a really poor way of doing minimap movement...
-            -- if love.mouse.isDown("l") and self.world.image ~= nil then
             if love.mouse.isDown("l") then
                 local x = (mx - mpx) / self.minimap_scale
                 local y = (my - mpy) / self.minimap_scale
@@ -53,19 +48,27 @@ return function(game)
                 end
             end
 
-            local speed = 750
+            if not mp_moved and not self.camera_locked then
+                local speed = 750
 
-            if mx <= 0 then
-                self.camera:move(-speed * dt, 0)
-            elseif mx >= love.graphics.getWidth() - 1 then
-                self.camera:move(speed * dt, 0)
-            end
+                if mx <= 0 then
+                    self.camera:move(-speed * dt, 0)
+                elseif mx >= love.graphics.getWidth() - 1 then
+                    self.camera:move(speed * dt, 0)
+                end
 
-            if my <= 0 then
-                self.camera:move(0, -speed * dt)
-            elseif my >= love.graphics.getHeight() - 1 then
-                self.camera:move(0, speed * dt)
+                if my <= 0 then
+                    self.camera:move(0, -speed * dt)
+                elseif my >= love.graphics.getHeight() - 1 then
+                    self.camera:move(0, speed * dt)
+                end
             end
+        end
+
+        local control = self:get_control()
+
+        if control ~= nil and self.camera_locked and not mp_moved then
+            control:update_camera(self.camera, dt)
         end
     end
 
@@ -76,7 +79,9 @@ return function(game)
     end
 
     function game:mousepressed(x, y, button)
-        if not self.camera_locked and button == "m" then -- Camera drag mode
+        if button == "m" then -- Camera drag mode
+            self.camera_locked = false
+
             if not love.mouse.getRelativeMode() then
                 self.mouse_pre_relative = {love.mouse.getPosition()}
             end

@@ -19,6 +19,36 @@ return function(game)
     function game:draw_ui()
         local sw, sh = love.graphics.getDimensions()
 
+        if debug_ents then
+            local count = 0
+            local control = self:get_control()
+
+            love.graphics.setFont(self.small_font)
+
+            for id, ent in pairs(self.entities) do
+                if ent == control then
+                    love.graphics.setColor(0, 255, 0)
+                else
+                    love.graphics.setColor(255, 255, 255)
+                end
+
+                love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 16 + count * 8)
+                count = count + 1
+            end
+
+            love.graphics.setColor(0, 255, 255)
+            love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
+        end
+
+        if debug_perf then
+            love.graphics.setFont(self.small_font)
+            love.graphics.setColor(0, 255, 255)
+            love.graphics.printf(
+                "Frame time: " .. math.ceil(love.timer.getAverageDelta() * 1000000) .. "us (" .. love.timer.getFPS() .."fps)\n" ..
+                "Ping: " .. self.server:round_trip_time() .. "ms",
+                8, 8, sw - 16, "right")
+        end
+
         if self.world.image ~= nil then
             local w, h = self.world.image:getDimensions()
             w = w * self.minimap_scale

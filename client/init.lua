@@ -6,6 +6,7 @@ require "shared/entities"
 
 states = {
     menu = require "client/states/menu",
+    connect_to_ip = require "client.states.connect_to_ip",
     connecting = require "client/states/connecting",
     game = require "client/states/game",
     pause = require "client/states/pause"

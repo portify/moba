@@ -8,8 +8,11 @@ function menu:init()
     local font = love.graphics.newFont(24)
 
     menu_obj = menu_lib:new(64, 64, font, {
-        {label = "Connect to " .. address, func = function()
-            gamestate.switch(states.connecting, address)
+        -- {label = "Connect to " .. address, func = function()
+        --     gamestate.switch(states.connecting, address)
+        -- end},
+        {label = "Connect to IP", func = function()
+            gamestate.switch(states.connect_to_ip)
         end},
         {label = "Options", func = function() end},
         {label = "Exit game", func = function() love.event.quit() end}

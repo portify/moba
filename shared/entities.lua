@@ -1,12 +1,16 @@
 entity = require "shared/entities/entity"
 
 entities = {
-    player = require "shared/entities/player",
-    projectile = require "shared/entities/projectile",
-    minion = require "shared/entities/minion",
-    spawn = require "shared/entities/spawn", -- This shouldn't be here!
-    tower = require "shared/entities/tower" -- TODO: separate list for mapents
+    projectile = require "shared/entities/projectile" -- load this first because reasons
 }
+
+entities.player = require "shared/entities/player"
+entities.minion = require "shared/entities/minion"
+entities.spawn = require "shared/entities/spawn" -- This shouldn't be here!
+entities.tower = require "shared/entities/tower" -- TODO: separate list for mapents
+
+-- this could be in a better place
+require "shared.game.player-effects"
 
 local e_table = {}
 local i_table = {}

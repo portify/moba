@@ -2,14 +2,13 @@ local world = require "shared.world"
 local camera = require "lib.hump.camera"
 
 local game = {}
-local small_font
 
 require("client.states.game.net")(game)
 require("client.states.game.input")(game)
 require("client.states.game.ui")(game)
 
 function game:init()
-    small_font = love.graphics.newFont(8)
+    self.small_font = love.graphics.newFont(8)
 end
 
 function game:enter(previous, address, host, server)
@@ -76,28 +75,6 @@ function game:draw()
     end
 
     self.camera:detach()
-
-    if debug_ents then
-        local count = 0
-        local control = self:get_control()
-
-        love.graphics.setFont(small_font)
-
-        for id, ent in pairs(self.entities) do
-            if ent == control then
-                love.graphics.setColor(0, 255, 0)
-            else
-                love.graphics.setColor(255, 255, 255)
-            end
-
-            love.graphics.print(id .. " = " .. get_entity_type_name(ent), 8, 16 + count * 8)
-            count = count + 1
-        end
-
-        love.graphics.setColor(0, 255, 255)
-        love.graphics.print(count .. " " .. (count == 1 and "entity" or "entities"), 8, 8)
-    end
-
     self:draw_ui()
 end
 

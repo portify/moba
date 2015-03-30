@@ -1,5 +1,29 @@
 local util = require "shared.util"
 
+entities.projectile:register_type("tower", function(self)
+    -- local image = love.graphics.newImage("assets/arrow.png")
+    local image = get_resource(love.graphics.newImage, "assets/arrow.png")
+    -- local system = love.graphics.newParticleSystem(image, 60)
+    local system = love.graphics.newParticleSystem(image, 175) -- very bad
+
+    --system:setParticleLifetime(0.4, 0.4)
+    system:setParticleLifetime(3, 3)
+    system:setEmissionRate(50)
+    system:setRelativeRotation(true)
+    system:setSizes(0.3, 0.2, 0.1)
+    --system:setLinearAcceleration(-60, -60, 60, 60)
+    --system:setTangentialAcceleration(-256, 256)
+    system:setSpeed(5,5)
+    system:setColors(
+        255, 50, 75, 255,
+        255, 50, 75, 128,
+        255, 50, 75, 64,
+        255, 50, 75, 0)
+
+    return system
+end)
+
+
 local tower = {
     is_unit = true,
     radius = 32,
@@ -102,7 +126,7 @@ function tower:update(dt)
 
     if self.timer <= 0 then
         if self.active_target ~= nil then
-            local p = entities.projectile:new()
+            local p = entities.projectile:new("tower")
 
             p.ignore[self] = true
             p.target = self.active_target
