@@ -57,7 +57,9 @@ return function(game)
             local y = sh - h
 
             love.graphics.setColor(255, 255, 255)
+            love.graphics.setShader(self.world.fog_shader)
             love.graphics.draw(self.world.image, x, y, 0, self.minimap_scale, self.minimap_scale)
+            love.graphics.setShader()
 
             -- Clamp game world to minimap
             love.graphics.setScissor(x, y, w, h)
@@ -93,6 +95,14 @@ return function(game)
             love.graphics.setColor(50, 50, 50)
             love.graphics.setLineWidth(1)
             love.graphics.rectangle("line", x, y, w, h)
+        end
+
+        if self.selection ~= nil then
+            local selection = self.entities[self.selection]
+            
+            if selection ~= nil then
+                selection:draw_select()
+            end
         end
     end
 end

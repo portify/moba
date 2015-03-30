@@ -79,8 +79,11 @@ function GS.registerEvents(callbacks)
 	local registry = {}
 	callbacks = callbacks or all_callbacks
 	for _, f in ipairs(callbacks) do
-		-- registry[f] = love[f] or __NULL__
-		registry[f] = love.get_original_impl(f) or __NULL__
+		if enable_cupid then
+			registry[f] = love.get_original_impl(f) or __NULL__
+		else
+			registry[f] = love[f] or __NULL__
+		end
 		love[f] = function(...)
 			registry[f](...)
 			return GS[f](...)

@@ -44,10 +44,11 @@ return function(game)
                 elseif data.e == EVENT.ENTITY_REMOVE then
                     for i, id in ipairs(data) do
                         if self.entities[id] ~= nil then
-                            self.entities[id]:removed()
+                            if not self.entities[id]:removed() then
+                                self.entities[id].__id = nil
+                                self.entities[id] = nil
+                            end
                         end
-
-                        self.entities[id] = nil
                     end
                 elseif data.e == EVENT.ENTITY_UPDATE then
                     data.e = nil

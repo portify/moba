@@ -18,6 +18,7 @@ EVENT = enum {
     "ENTITY_CONTROL",
     "WORLD",
     "MOVE_TO",
+    "BASIC_ATTACK",
     "USE_ABILITY"
 }
 

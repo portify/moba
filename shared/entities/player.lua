@@ -247,12 +247,65 @@ function player:update(dt)
         end
 
         if f > 0 then
-            local how = (self.health_anim_from - self.health) / 0.5
-            self.health_anim = math.max(self.health, self.health_anim - f * how)
+            if self.health_anim_from < self.health then
+                self.health_anim = self.health
+            else
+                local how = (self.health_anim_from - self.health) / 0.5
+                self.health_anim = math.max(self.health, self.health_anim - f * how)
 
-            if self.health_anim > self.health then
-                local w, h = self.image_bar_health:getDimensions()
-                self.quad_bar_health_anim:setViewport(0, 0, w * (self.health_anim / self.health_max), h)
+                if self.health_anim > self.health then
+                    local w, h = self.image_bar_health:getDimensions()
+                    self.quad_bar_health_anim:setViewport(0, 0, w * (self.health_anim / self.health_max), h)
+                end
+            end
+        end
+    end
+
+    if not is_client and self.basic_attack ~= nil then
+        local target = server.entities[self.basic_attack]
+
+        if target ~= nil and not target:is_alive() then
+            self.basic_attack = nil
+            self.path = nil
+        end
+
+        if target ~= nil then
+            local MAX_ATTACK_DISTANCE = 50 ^ 2
+            local distance = util.dist2(self.px, self.py, target.px, target.py)
+
+            if distance <= MAX_ATTACK_DISTANCE then
+                if self.path ~= nil then
+                    self.path = nil
+                    update_entity(self)
+                end
+
+                if not self.move_curve then
+                    self:play_move(1, {
+                        0, 0,
+                        self.vx * -12, self.vy * -12,
+                        self.vx *  24, self.vy *  24,
+                        self.vx *   4, self.vy *   4,
+                        0, 0
+                    })
+
+                    delay(0.6, function() target:damage(35) end)
+                end
+            else
+                if self.path ~= nil then
+                    local dest = self.path[1]
+
+                    if dest[1] ~= target.px or dest[2] ~= target.py then
+                        self.path = nil
+                    end
+                end
+
+                -- This is ~very~ inefficient
+                if self.path == nil then
+                    -- And spammy on the network
+                    if not self:move_to(target.px, target.py) then
+                        self.basic_attack = nil
+                    end
+                end
             end
         end
     end
@@ -291,6 +344,20 @@ function player:draw()
     love.graphics.circle("line", x, y, self.radius, self.radius * 2)
 
     self:draw_ui()
+end
+
+-- *CLIENT*
+-- Test if the mouse position (x, y) would select this entity
+-- Used for basic attacks and info UI
+function player:try_select(x, y)
+    local control = states.game:get_control()
+    local px, py = self:get_draw_pos()
+    return control ~= self and util.dist2(x, y, px, py) <= self.radius ^ 2
+end
+
+-- *CLIENT*
+-- Draw the selection UI for a selected instance of this entity
+function player:draw_select()
 end
 
 function player:draw_ui()
@@ -402,7 +469,7 @@ function player:move_to(x, y)
         self:play_move()
     end
 
-    pathedentity.move_to(self, x, y)
+    return pathedentity.move_to(self, x, y)
 end
 
 function player:use_ability(which, x, y)

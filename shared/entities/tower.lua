@@ -4,10 +4,11 @@ entities.projectile:register_type("tower", function(self)
     -- local image = love.graphics.newImage("assets/arrow.png")
     local image = get_resource(love.graphics.newImage, "assets/arrow.png")
     -- local system = love.graphics.newParticleSystem(image, 60)
-    local system = love.graphics.newParticleSystem(image, 175) -- very bad
+    local system = love.graphics.newParticleSystem(image, 0.8 * 50 + 20) -- very bad
 
     --system:setParticleLifetime(0.4, 0.4)
-    system:setParticleLifetime(3, 3)
+    --system:setParticleLifetime(3, 3)
+    system:setParticleLifetime(0.8, 0.8)
     system:setEmissionRate(50)
     system:setRelativeRotation(true)
     system:setSizes(0.3, 0.2, 0.1)
@@ -151,6 +152,18 @@ function tower:update(dt)
     else
         self.timer = self.timer - dt
     end
+end
+
+-- *CLIENT*
+-- Test if the mouse position (x, y) would select this entity
+-- Used for basic attacks and info UI
+function tower:try_select(x, y)
+    return util.dist2(x, y, self.px, self.py) <= self.radius ^ 2
+end
+
+-- *CLIENT*
+-- Draw the selection UI for a selected instance of this entity
+function tower:draw_select()
 end
 
 function tower:draw()

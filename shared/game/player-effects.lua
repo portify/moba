@@ -11,10 +11,10 @@ entities.projectile:register_type("player-basic", function(self)
     --system:setTangentialAcceleration(-256, 256)
     system:setSpeed(5,5)
     system:setColors(
-        128, 128, 128, 255,
-        128, 128, 128, 128,
-        128, 128, 128, 64,
-        128, 128, 128, 0)
+        100, 255, 120, 255,
+        100, 255, 120, 128,
+        100, 255, 120, 64,
+        100, 255, 120, 0)
 
     return system
 end)

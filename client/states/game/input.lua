@@ -3,7 +3,7 @@ return function(game)
         local paused = gamestate.current() ~= self
         local mpx, mpy, mpw, mph = self:get_minimap_bounds()
 
-        if love.mouse.isDown("r") and not paused then
+        if self.moving_rmb and not paused then
             local x, y = love.mouse.getPosition()
 
             if x >= mpx and y >= mpy then
@@ -79,6 +79,45 @@ return function(game)
     end
 
     function game:mousepressed(x, y, button)
+        local control = self:get_control()
+
+        if control ~= nil then
+            if button == "l" then
+                self.selection = nil
+
+                for id, ent in pairs(self.entities) do
+                    -- if ent.try_select then
+                    if ent.is_unit and ent.try_select then
+                        if ent:try_select(self.camera:worldCoords(x, y)) then
+                            self.selection = id
+                            break
+                        end
+                    end
+                end
+            elseif button == "r" then
+                local target
+
+                for id, ent in pairs(self.entities) do
+                    -- if ent.try_select then
+                    if ent.is_unit and ent.team ~= control.team and ent.try_select then
+                        if ent:try_select(self.camera:worldCoords(x, y)) then
+                            target = id
+                            break
+                        end
+                    end
+                end
+
+                if target == nil then
+                    self.moving_rmb = true
+                else
+                    self.server:send(mp.pack{
+                        e = EVENT.BASIC_ATTACK,
+                        i = target
+                    })
+                end
+            end
+        end
+
         if button == "m" then -- Camera drag mode
             self.camera_locked = false
 
@@ -95,7 +134,9 @@ return function(game)
     end
 
     function game:mousereleased(x, y, button)
-        if button == "m" and love.mouse.getRelativeMode() then
+        if button == "r" then
+            self.moving_rmb = false
+        elseif button == "m" and love.mouse.getRelativeMode() then
             love.mouse.setRelativeMode(false)
             love.mouse.setPosition(unpack(self.mouse_pre_relative))
         end

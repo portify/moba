@@ -225,12 +225,33 @@ function minion:update(dt)
             self.path = self.destiny
             table.remove(self.path)
 
-            self:move_to(self.path[#self.path][1], self.path[#self.path][2], true)
+            if #self.path > 0 then
+                self:move_to(self.path[#self.path][1], self.path[#self.path][2], true)
+            else
+                self.path = nil
+                update_entity(self)
+            end
+
             -- self.path = self.destiny
             -- self.path_progress = 0
             -- update_entity(self)
         end
     end
+end
+
+-- *CLIENT*
+-- Test if the mouse position (x, y) would select this entity
+-- Used for basic attacks and info UI
+function minion:try_select(x, y)
+    local px, py = self:get_draw_pos()
+    local x1, y1 = px - self.radius, py - self.radius
+    local x2, y2 = px + self.radius, py + self.radius
+    return x >= x1 and y >= y1 and x < x2 and y < y2
+end
+
+-- *CLIENT*
+-- Draw the selection UI for a selected instance of this entity
+function minion:draw_select()
 end
 
 function minion:draw()

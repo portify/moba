@@ -68,6 +68,12 @@ end
 
 function game:draw()
     self.camera:attach()
+    -- local control = self:get_control()
+    --
+    -- if control ~= nil then
+    --     self.world.fog_shader:send("vision_center", {control:get_draw_pos()})
+    -- end
+
     self.world:draw()
 
     for id, ent in pairs(self.entities) do

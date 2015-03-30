@@ -21,25 +21,6 @@ function projectile:client_init()
         self.types[name] = loader(self)
         self.types[name]:stop()
     end
-
-    -- local image = love.graphics.newImage("assets/arrow.png")
-    -- local system = love.graphics.newParticleSystem(image, 60)
-    --
-    -- system:setParticleLifetime(0.4, 0.4)
-    -- system:setEmissionRate(50)
-    -- system:setRelativeRotation(true)
-    -- system:setSizes(0.3, 0.2, 0.1)
-    -- --system:setLinearAcceleration(-60, -60, 60, 60)
-    -- --system:setTangentialAcceleration(-256, 256)
-    -- system:setSpeed(5,5)
-    -- system:setColors(
-    --     0, 0, 0, 255,
-    --     0, 0, 0, 128,
-    --     0, 0, 0, 64,
-    --     0, 0, 0, 0)
-    --
-    -- self.emitter_type = system
-    -- self.emitter_type:stop()
 end
 
 function projectile:new(type)
@@ -54,15 +35,19 @@ function projectile:new(type)
     new.vy = 0
     new.team = nil
 
-    if is_client then
-        -- new.emitter = projectile.emitter_type:clone()
-        -- new.emitter:reset()
-        -- new.emitter:start()
-    else
+    if not is_client then
         new.ignore = {}
     end
 
     return new
+end
+
+function projectile:removed()
+    if is_client and self.emitter then
+        self.is_removed = true
+        self.emitter:stop()
+        return true
+    end
 end
 
 function projectile:pack(type)
@@ -105,7 +90,18 @@ function projectile:get_world_plane()
 end
 
 function projectile:update(dt)
-    if not is_client and self.life >= 0 then
+    if self.is_removed then
+        self.emitter:update(dt)
+
+        if self.emitter:getCount() == 0 then
+            states.game.entities[self.__id] = nil
+            self.__id = nil
+        end
+
+        return
+    end
+
+    if not is_client and self.life > 0 then
         self.life = self.life - dt
 
         if self.life <= 0 then

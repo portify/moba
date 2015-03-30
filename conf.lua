@@ -97,14 +97,16 @@ end
 
 love.filesystem.write(config_file, serialize(config))
 
-if not args.server.set then
+if not args.server.set and false then
     require "lib/cupid"
+    enable_cupid = true
 end
 
 function love.conf(t)
     t.identity = "moba"
     t.version = "0.9.2"
-    t.console = not not args.server.set
+    --t.console = not not args.server.set
+    t.console = true
 
     if args.mapedit.set then
         t.window.title = "mapedit"

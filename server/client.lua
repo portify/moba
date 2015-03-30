@@ -106,18 +106,31 @@ function client:disconnected(data)
 end
 
 function client:received(data)
-    -- print(self.peer:index() .. " --> " .. tostring(EVENT(data.e)))
+    local control = self:get_control()
 
     if data.e == EVENT.MOVE_TO then
-        if self.player ~= nil then
-            self.player:move_to(data.x, data.y)
+        if control ~= nil then
+            control.basic_attack = nil
+            control:move_to(data.x, data.y)
         end
     elseif data.e == EVENT.USE_ABILITY then
-        if self.player ~= nil then
-            self.player:use_ability(data.i, data.x, data.y)
+        if control ~= nil then
+            control.basic_attack = nil
+            control:use_ability(data.i, data.x, data.y)
+        end
+    elseif data.e == EVENT.BASIC_ATTACK then
+        if data.i ~= nil then
+            local ent = server.entities[data.i]
+            
+            if
+                control ~= nil and ent ~= nil and
+                data.i ~= control.__id and ent.team ~= self.team
+            then
+                control.basic_attack = data.i
+            end
         end
     else
-        print("Got unknown packet from client " .. name .. ": " .. data.e)
+        print("Got unknown packet from client " .. name .. ": " .. data.e .. " (" .. tostring(EVENT(data.e)) .. ")")
         self:disconnect(DISCONNECT.INVALID_PACKET)
     end
 end
