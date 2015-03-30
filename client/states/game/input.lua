@@ -83,9 +83,9 @@ return function(game)
 
             love.mouse.setRelativeMode(true)
         elseif button == "wd" then -- Zoom out
-            self.camera.scale = math.max(0.75, self.camera.scale - 0.1)
+            self.camera.scale = math.max(0.5, self.camera.scale - 0.1)
         elseif button == "wu" then -- Zoom in
-            self.camera.scale = math.min(1.5 , self.camera.scale + 0.1)
+            self.camera.scale = math.min(1.0, self.camera.scale + 0.1)
         end
     end
 

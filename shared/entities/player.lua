@@ -100,6 +100,11 @@ function player:unpack(t, initial)
         pathedentity.unpack(self, t[4], false)
     end
 
+    if self.health < health then
+        self.health_anim_from = health
+        self.health_anim_wait = 0.25
+    end
+
     if self.health ~= health then
         local w, h = self.image_bar_health:getDimensions()
         self.quad_bar_health:setViewport(0, 0, w * (self.health / self.health_max), h)
@@ -132,11 +137,22 @@ end
 
 function player:update(dt)
     if is_client and self.health_anim > self.health then
-        self.health_anim = math.max(self.health, self.health_anim - dt * 25)
+        local f = dt
 
-        if self.health_anim > self.health then
-            local w, h = self.image_bar_health:getDimensions()
-            self.quad_bar_health_anim:setViewport(0, 0, w * (self.health_anim / self.health_max), h)
+        if self.health_anim_wait > 0 then
+            local to_wait = self.health_anim_wait
+            self.health_anim_wait = self.health_anim_wait - f
+            f = f - to_wait
+        end
+
+        if f > 0 then
+            local how = (self.health_anim_from - self.health) / 0.5
+            self.health_anim = math.max(self.health, self.health_anim - f * how)
+
+            if self.health_anim > self.health then
+                local w, h = self.image_bar_health:getDimensions()
+                self.quad_bar_health_anim:setViewport(0, 0, w * (self.health_anim / self.health_max), h)
+            end
         end
     end
 
