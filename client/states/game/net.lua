@@ -12,7 +12,7 @@ return function(game)
     function game:disconnect()
         self.server:disconnect_later(DISCONNECT.EXITING)
     end
-    
+
     function game:update_net()
         local event = self.host:service()
 
@@ -27,12 +27,12 @@ return function(game)
                     for id, params in pairs(data) do
                         local type = entity_from_id(params.t)
 
-                        if not self.entity_init[type] then
+                        if not type.__ran_client_init then
                             if type.client_init then
-                                type.client_init()
+                                type:client_init()
                             end
 
-                            self.entity_init[type] = true
+                            type.__ran_client_init = true
                         end
 
                         local ent = type:new()

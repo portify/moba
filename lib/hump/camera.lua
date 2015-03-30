@@ -80,6 +80,14 @@ function camera:attach()
 	love.graphics.translate(-self.x, -self.y)
 end
 
+function camera:attach_scalefree()
+	local cx,cy = love.graphics.getWidth()/2, love.graphics.getHeight()/2
+	love.graphics.push()
+	love.graphics.translate(cx, cy)
+	love.graphics.rotate(self.rot)
+	love.graphics.translate(-self.x, -self.y)
+end
+
 function camera:detach()
 	love.graphics.pop()
 end

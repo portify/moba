@@ -1,3 +1,5 @@
+-- 255 219 158
+
 local pathedentity = require "shared.entities.pathedentity"
 local util = require "shared.util"
 
@@ -12,21 +14,46 @@ local player = {
 player.__index = player
 setmetatable(player, pathedentity)
 
+function player:client_init()
+    -- self.health_bar_back = love.graphics.newImage("assets/health_bar_back.png")
+    -- self.health_bar_start = love.graphics.newImage("assets/health_bar_start.png")
+    -- self.health_bar_piece = love.graphics.newImage("assets/health_bar_piece.png")
+    -- self.health_bar_end = love.graphics.newImage("assets/health_bar_end.png")
+    self.image_bar_tick = love.graphics.newImage("assets/health_bar_tick.png")
+    self.image_bar_back = love.graphics.newImage("assets/health_bar2_back.png")
+    self.image_bar_health = love.graphics.newImage("assets/health_bar2_health.png")
+    self.image_bar_mana = love.graphics.newImage("assets/health_bar2_mana.png")
+    self.image_bar_xp = love.graphics.newImage("assets/health_bar2_xp.png")
+    self.image_bar_glass = love.graphics.newImage("assets/health_bar2_glass.png")
+end
+
 function player:new(name)
     new = pathedentity.new(self)
-    -- local sx, sy = self:get_world_instance().mesh[1]:center()
 
     new.name = name
-    -- new.px = sx
-    -- new.py = sy
     new.speed = 170
-    new.health_max = 100
-    new.health = new.health_max
     new.team = false
+    new.health_max = 300
+    new.health = new.health_max
+    new.mana_max = 300
+    new.mana = new.mana_max
+    new.level = 1
+    new.xp = 0
 
     if is_client then
-        new.health_buffer = 0
+        new.health_anim = new.health
         new._name_font = get_resource(love.graphics.newFont, 14)
+
+        local w, h
+        w, h = new.image_bar_health:getDimensions()
+        new.quad_bar_health = love.graphics.newQuad(0, 0, w, h, w, h)
+        new.quad_bar_health_anim = love.graphics.newQuad(0, 0, w, h, w, h)
+        w, h = new.image_bar_mana:getDimensions()
+        new.quad_bar_mana = love.graphics.newQuad(0, 0, w, h, w, h)
+        w, h = new.image_bar_xp:getDimensions()
+        new.quad_bar_xp = love.graphics.newQuad(0, h, w, 0, w, h)
+    else
+        new.xp = 50
     end
 
     return new
@@ -34,26 +61,60 @@ end
 
 function player:pack(initial)
     if initial then
-        return {self.name, self.team, self.health, self.health_max, pathedentity.pack(self, true)}
+        return {
+            self.name, self.team,
+            self.health, self.health_max,
+            self.mana, self.mana_max,
+            self.xp,
+            pathedentity.pack(self, true)
+        }
     else
-        return {self.health, pathedentity.pack(self, false)}
+        return {
+            self.health,
+            self.mana,
+            self.xp,
+            pathedentity.pack(self, false)
+        }
     end
 end
 
 function player:unpack(t, initial)
+    local health = self.health
+    local mana = self.mana
+    local xp = self.xp
+
     if initial then
         self.name = t[1]
         self.team = t[2]
         self.health = t[3]
         self.health_max = t[4]
-        pathedentity.unpack(self, t[5], true)
+        self.mana = t[5]
+        self.mana_max = t[6]
+        self.xp = t[7]
+        pathedentity.unpack(self, t[8], true)
     else
-        local old = self.health
         self.health = t[1]
-        pathedentity.unpack(self, t[2], false)
+        self.health_anim = math.max(self.health, self.health_anim)
+        self.mana = t[2]
+        self.xp = t[3]
+        pathedentity.unpack(self, t[4], false)
+    end
 
-        local delta = old - self.health
-        self.health_buffer = math.max(0, math.min(self.health_max - self.health, self.health_buffer + delta))
+    if self.health ~= health then
+        local w, h = self.image_bar_health:getDimensions()
+        self.quad_bar_health:setViewport(0, 0, w * (self.health / self.health_max), h)
+    end
+
+    if self.mana ~= mana then
+        local w, h = self.image_bar_mana:getDimensions()
+        self.quad_bar_mana:setViewport(0, 0, w * (self.mana / self.mana_max), h)
+    end
+
+    if self.xp ~= xp then
+        local w, h = self.image_bar_xp:getDimensions()
+        local f = self.xp / 100 -- test
+        print(f)
+        self.quad_bar_xp:setViewport(0, h * f, w, h * (1 - f))
     end
 end
 
@@ -70,8 +131,13 @@ function player:damage(hp)
 end
 
 function player:update(dt)
-    if is_client then
-        self.health_buffer = math.max(0, self.health_buffer - dt * 25)
+    if is_client and self.health_anim > self.health then
+        self.health_anim = math.max(self.health, self.health_anim - dt * 25)
+
+        if self.health_anim > self.health then
+            local w, h = self.image_bar_health:getDimensions()
+            self.quad_bar_health_anim:setViewport(0, 0, w * (self.health_anim / self.health_max), h)
+        end
     end
 
     pathedentity.update(self, dt)
@@ -89,11 +155,6 @@ function player:draw()
         end
     end
 
-    -- This draws aim direction
-    -- love.graphics.setColor(255, 255, 255)
-    -- love.graphics.setLineWidth(2)
-    -- love.graphics.line(self.px, self.py, self.px + self.vx * 64, self.py + self.vy * 64)
-
     local r, g, b
 
     if self.team == 0 then
@@ -110,49 +171,67 @@ function player:draw()
     love.graphics.setColor(r/2, g/2, b/2)
     love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
 
-    -- love.graphics.setColor(80, 80, 80)
-    -- love.graphics.circle("fill", self.px, self.py, 8)
-    -- love.graphics.setLineWidth(2)
-    -- love.graphics.setColor(255, 255, 255)
-    -- love.graphics.circle("line", self.px, self.py, 8)
+    self:draw_ui()
+end
 
-    -- Draw health bar
-    local width = 64
-    local height = 12
-    local spacing = 16
+function player:draw_ui()
+    local w = self.image_bar_back:getWidth()
+    local h = self.image_bar_back:getHeight()
+    local x = math.floor(self.px - w / 2 + 0.5)
+    local y = math.floor(self.py - h - self.radius - 4 + 0.5)
 
-    local hp = self.health / self.health_max
-
-    -- Background
-    love.graphics.setColor(127, 127, 127)
-    love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
-        width, height)
-
-    -- Lost health
-    love.graphics.setColor(255, 50, 50)
-    love.graphics.rectangle("fill",
-        self.px - width / 2 + width * hp, self.py - self.radius / 2 - spacing - height,
-        width * (self.health_buffer / self.health_max), height)
-
-    -- Current health
-    -- love.graphics.setColor(50, 255, 50)
-    love.graphics.setColor(r, g, b)
-    love.graphics.rectangle("fill",
-        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
-        width * hp, height)
-
-    -- Outline
     love.graphics.setColor(255, 255, 255)
-    love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line",
-        self.px - width / 2, self.py - self.radius / 2 - spacing - height,
-        width, height)
+    love.graphics.draw(self.image_bar_back, x, y)
+
+    if self.health_anim > self.health then
+        love.graphics.setColor(255, 150, 100)
+        love.graphics.draw(self.image_bar_health, self.quad_bar_health_anim, x + 16, y + 17)
+    end
+
+    love.graphics.setColor(255, 219, 158) -- Original yellow
+    love.graphics.draw(self.image_bar_health, self.quad_bar_health, x + 16, y + 17)
+
+    -- Draw ticks over health
+    local i = 1
+    local step = 100
+    local bw = self.image_bar_health:getWidth()
+    local tw = self.image_bar_tick:getWidth()
+
+    love.graphics.setColor(255, 255, 255)
+
+    while i * step < self.health do
+        local sx = (step / self.health_max) * i * bw - tw / 2
+        love.graphics.draw(self.image_bar_tick, x + 16 + sx, y + 17)
+        i = i + 1
+    end
+
+    -- Mana bar
+    -- love.graphics.setColor(255, 255, 255)
+    love.graphics.draw(self.image_bar_mana, self.quad_bar_mana, x + 16, y + 29)
+
+    -- Level
+    local xpx, xpy, xpw, xph = self.quad_bar_xp:getViewport()
+    love.graphics.draw(self.image_bar_xp, self.quad_bar_xp, x + 3, y + 3 + xpy)
+    love.graphics.setFont(self._name_font)
+    love.graphics.print(tostring(self.level), x + 8, y + 4)
+
+    -- Glass over level
+    love.graphics.draw(self.image_bar_glass, x + 3, y + 3)
 
     if self.name ~= nil then
+        local r, g, b
+
+        if self.team == 0 then
+            r, g, b = 255, 200, 100
+        elseif self.team == 1 then
+            r, g, b = 100, 200, 255
+        else
+            r, g, b = 200, 200, 200
+        end
+
         love.graphics.setColor(r, g, b)
         love.graphics.setFont(self._name_font)
-        love.graphics.printf(self.name, self.px - 200, self.py - self.radius / 2 - spacing - height - 14 - 8, 400, "center")
+        love.graphics.printf(self.name, math.floor(self.px - 200 + 0.5), y - 8 + 6, 400, "center")
     end
 end
 

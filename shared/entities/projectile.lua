@@ -4,7 +4,7 @@ local projectile = {}
 projectile.__index = projectile
 setmetatable(projectile, entity)
 
-function projectile.client_init()
+function projectile:client_init()
     local image = love.graphics.newImage("assets/cloud.png")
     local system = love.graphics.newParticleSystem(image, 60)
 
@@ -19,8 +19,8 @@ function projectile.client_init()
         255, 255, 255, 255,
         255, 255, 255, 0)
 
-    projectile.emitter_type = system
-    projectile.emitter_type:stop()
+    self.emitter_type = system
+    self.emitter_type:stop()
 end
 
 function projectile:new()

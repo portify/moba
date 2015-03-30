@@ -4,7 +4,7 @@ local util = require "shared.util"
 local minion = {
     is_unit = true,
     radius = 8,
-    health_max = 40
+    health_max = 150
 }
 
 minion.__index = minion
@@ -144,10 +144,12 @@ function minion:draw()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
+    -- love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
+    love.graphics.rectangle("fill", self.px - self.radius, self.py - self.radius, self.radius * 2, self.radius * 2)
     love.graphics.setLineWidth(2)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
+    -- love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
+    love.graphics.rectangle("line", self.px - self.radius, self.py - self.radius, self.radius * 2, self.radius * 2)
 
     -- love.graphics.setColor(80, 80, 80)
     -- love.graphics.circle("fill", self.px, self.py, 8)
@@ -196,7 +198,8 @@ function minion:draw_minimap()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, self.radius * 8)
+    -- love.graphics.circle("fill", self.px, self.py, self.radius * 8)
+    love.graphics.rectangle("fill", self.px - 20, self.py - 20, 40, 40)
 end
 
 return minion

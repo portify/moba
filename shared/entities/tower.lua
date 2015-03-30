@@ -3,7 +3,7 @@ local util = require "shared.util"
 local tower = {
     is_unit = true,
     radius = 32,
-    health_max = 500,
+    health_max = 2500,
     max_player_dist = 150
 }
 
@@ -17,6 +17,7 @@ function tower:new()
         py = 0,
         timer = 0,
         health = self.health_max,
+        damage_scale = 1,
     }, self)
 end
 
@@ -78,6 +79,7 @@ function tower:update(dt)
             util.dist(self.px, self.py, ent.px, ent.py) > self.max_player_dist
         then
             self.active_target = nil
+            self.damage_scale = 1
         end
     end
 
@@ -107,7 +109,7 @@ function tower:update(dt)
             p.life = -1
             p.speed = 150
             p.radius = 8
-            p.damage = 12
+            p.damage = 100 * self.damage_scale
             p.px = self.px
             p.py = self.py
             p.team = self.team
@@ -115,6 +117,7 @@ function tower:update(dt)
             add_entity(p)
 
             self.timer = 1.5
+            self.damage_scale = math.min(3.5, self.damage_scale + 0.25)
         end
     else
         self.timer = self.timer - dt
@@ -192,7 +195,23 @@ function tower:draw()
         love.graphics.rectangle("line",
             self.px - width / 2, self.py - self.radius / 2 - spacing - height,
             width, height)
-        end
+    end
+end
+
+function tower:draw_minimap()
+    local r, g, b
+
+    if self.team == 0 then
+        -- r, g, b = 255, 127, 50
+        r, g, b = 125, 25, 175
+    elseif self.team == 1 then
+        r, g, b = 50, 127, 255
+    else
+        r, g, b = 127, 127, 127
+    end
+
+    love.graphics.setColor(r, g, b)
+    love.graphics.circle("fill", self.px, self.py, 54)
 end
 
 return tower

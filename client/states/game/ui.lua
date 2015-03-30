@@ -36,7 +36,7 @@ return function(game)
             love.graphics.scale(self.minimap_scale)
 
             -- Draw entities
-            for id, ent in ipairs(self.entities) do
+            for id, ent in pairs(self.entities) do
                 if ent.draw_minimap then
                     ent:draw_minimap()
                 end

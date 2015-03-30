@@ -25,6 +25,7 @@ function game:enter(previous, address, host, server)
 
     self.control = setmetatable({}, {__mode = "kv"})
     self.camera = camera.new()
+    self.camera:zoomTo(1.5)
     self.camera_locked = false
 
     love.mouse.setGrabbed(true)
