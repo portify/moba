@@ -17,6 +17,8 @@ return function(game)
         local update_count = {}
         local update_key = {}
 
+        update_count.bytes = 0
+
         for name, impl in pairs(entities) do
             local entry = {
                 name = name,
@@ -71,6 +73,8 @@ return function(game)
                             local t = getmetatable(self.entities[entry.i])
 
                             update_key[t].count = update_key[t].count + 1
+                            update_count.bytes = update_count.bytes + #event.data
+                            
                             self.entities[entry.i]:unpack(entry.d, entry.t)
                         end
                     end

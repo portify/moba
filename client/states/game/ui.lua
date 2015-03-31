@@ -119,6 +119,8 @@ return function(game)
 
             local highest = 1
             local entries = 0
+            local sum = 0
+            local sumbytes = 0
             local winning
 
             -- This is very inefficient
@@ -138,6 +140,8 @@ return function(game)
                     winning = i
                 end
 
+                sum = sum + n
+                sumbytes = sumbytes + data.bytes
                 entries = entries + 1
             end
 
@@ -145,8 +149,9 @@ return function(game)
                 highest = 5
             end
 
-            love.graphics.setColor(0, 0, 255)
-            -- love.graphics.print("Log entries: " .. entries, x, y)
+            local kb = math.floor((sumbytes / 1024) * 10000 + 0.5) / 10000
+            love.graphics.setColor(255, 255, 230)
+            love.graphics.print(sum .. " updates over " .. entries .. " frames (" .. kb .. " kB)", x, y)
             love.graphics.setLineWidth(1)
             love.graphics.setLineStyle("rough")
 
@@ -174,8 +179,9 @@ return function(game)
                 end
 
                 if i == winning then
+                    local kb = math.floor((data.bytes / 1024) * 10000 + 0.5) / 10000
                     love.graphics.setColor(255, 0, 0)
-                    love.graphics.print(highest, ex, ey)
+                    love.graphics.print(highest .. " (" .. kb .. " kB)", ex, ey)
                 end
             end
         end
