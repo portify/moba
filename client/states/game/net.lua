@@ -14,6 +14,19 @@ return function(game)
     end
 
     function game:update_net()
+        local update_count = {}
+        local update_key = {}
+
+        for name, impl in pairs(entities) do
+            local entry = {
+                name = name,
+                count = 0
+            }
+
+            table.insert(update_count, entry)
+            update_key[impl] = entry
+        end
+
         local event = self.host:service()
 
         while event do
@@ -55,6 +68,9 @@ return function(game)
 
                     for i, entry in ipairs(data) do
                         if self.entities[entry.i] ~= nil then
+                            local t = getmetatable(self.entities[entry.i])
+
+                            update_key[t].count = update_key[t].count + 1
                             self.entities[entry.i]:unpack(entry.d, entry.t)
                         end
                     end
@@ -86,5 +102,13 @@ return function(game)
 
             event = self.host:service()
         end
+
+        if self.update_graph_index == self.update_graph_count then
+            self.update_graph_index = 1
+        else
+            self.update_graph_index = self.update_graph_index + 1
+        end
+
+        self.update_graph_data[self.update_graph_index] = update_count
     end
 end

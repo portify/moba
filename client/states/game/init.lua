@@ -29,6 +29,10 @@ function game:enter(previous, address, host, server)
 
     love.mouse.setGrabbed(true)
     love.graphics.setBackgroundColor(0, 0, 0)
+
+    self.update_graph_count = 500
+    self.update_graph_index = 0
+    self.update_graph_data = {}
 end
 
 function game:resume()

@@ -16,6 +16,8 @@ return function(game)
         return sw + 1, sh + 1, -1, -1
     end
 
+    local inefficient = love.math.newRandomGenerator()
+
     function game:draw_ui()
         local sw, sh = love.graphics.getDimensions()
 
@@ -99,9 +101,82 @@ return function(game)
 
         if self.selection ~= nil then
             local selection = self.entities[self.selection]
-            
+
             if selection ~= nil then
                 selection:draw_select()
+            end
+        end
+
+        -- Draw update graph
+        if self.update_graph_index ~= 0 then
+            local w = self.update_graph_count
+            local h = 200
+            local x = 0
+            local y = love.graphics.getHeight() - h
+
+            love.graphics.setColor(255, 255, 255, 60)
+            love.graphics.rectangle("fill", x, y, w, h)
+
+            local highest = 1
+            local entries = 0
+            local winning
+
+            -- This is very inefficient
+            for i=0, self.update_graph_count-1 do
+                local j = (self.update_graph_index - i - 1) % self.update_graph_count + 1
+                local data = self.update_graph_data[j]
+                if data == nil then break end
+
+                local n = 0
+
+                for i, entry in ipairs(data) do
+                    n = n + entry.count
+                end
+
+                if n > highest then
+                    highest = n
+                    winning = i
+                end
+
+                entries = entries + 1
+            end
+
+            if highest < 5 then
+                highest = 5
+            end
+
+            love.graphics.setColor(0, 0, 255)
+            -- love.graphics.print("Log entries: " .. entries, x, y)
+            love.graphics.setLineWidth(1)
+            love.graphics.setLineStyle("rough")
+
+            for i=0, self.update_graph_count-1 do
+                local j = (self.update_graph_index - i - 1) % self.update_graph_count + 1
+                local data = self.update_graph_data[j]
+                if data == nil then break end
+
+                local ex = x + w - 1 - i
+                local ey = love.graphics.getHeight()
+
+                for i, entry in ipairs(data) do
+                    if entry.count > 0 then
+                        local eh = (entry.count / highest) * h
+                        ey = ey - eh
+                        inefficient:setSeed(i * 597)
+                        -- love.graphics.setColor(0, 255, 0)
+                        love.graphics.setColor(
+                            inefficient:random(255),
+                            inefficient:random(255),
+                            inefficient:random(255)
+                        )
+                        love.graphics.line(ex, ey, ex, ey + eh)
+                    end
+                end
+
+                if i == winning then
+                    love.graphics.setColor(255, 0, 0)
+                    love.graphics.print(highest, ex, ey)
+                end
             end
         end
     end
