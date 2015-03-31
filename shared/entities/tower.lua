@@ -158,7 +158,7 @@ end
 -- Test if the mouse position (x, y) would select this entity
 -- Used for basic attacks and info UI
 function tower:try_select(x, y)
-    return util.dist2(x, y, self.px, self.py) <= self.radius ^ 2
+    return self:is_alive() and util.dist2(x, y, self.px, self.py) <= self.radius ^ 2
 end
 
 -- *CLIENT*
@@ -166,7 +166,7 @@ end
 function tower:draw_select()
 end
 
-function tower:draw()
+function tower:draw(mode)
     local r, g, b
 
     if self.team == 0 then
@@ -207,6 +207,17 @@ function tower:draw()
     end
 
     -- Draw body
+    if mode ~= nil then
+        if mode == "select" then
+            love.graphics.setColor(255, 0, 0)
+        elseif mode == "hover" then
+            love.graphics.setColor(255, 255, 255)
+        end
+
+        love.graphics.setLineWidth(8)
+        love.graphics.circle("line", self.px, self.py, self.radius, self.radius * 2)
+    end
+
     love.graphics.setColor(r, g, b)
     love.graphics.circle("fill", self.px, self.py, self.radius, self.radius * 2)
 
@@ -241,13 +252,19 @@ function tower:draw()
 end
 
 function tower:draw_minimap()
+    if self.health <= 0 then
+        return
+    end
+
     local r, g, b
 
     if self.team == 0 then
         -- r, g, b = 255, 127, 50
-        r, g, b = 125, 25, 175
+        -- r, g, b = 125, 25, 175
+        r, g, b = 255, 0, 0
     elseif self.team == 1 then
-        r, g, b = 50, 127, 255
+        -- r, g, b = 50, 127, 255
+        r, g, b = 0, 0, 255
     else
         r, g, b = 127, 127, 127
     end

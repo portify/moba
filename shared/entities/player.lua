@@ -5,7 +5,7 @@ local util = require "shared.util"
 
 local player = {
     is_unit = true,
-    radius = 8,
+    radius = 20,
     use_funnel = true,
     use_outside_snap = true,
     allow_direct_move = true
@@ -313,7 +313,7 @@ function player:update(dt)
     pathedentity.update(self, dt)
 end
 
-function player:draw()
+function player:draw(mode)
     pathedentity.draw(self)
 
     if debug_nav then -- Draw the plane we're in if any
@@ -336,6 +336,17 @@ function player:draw()
     end
 
     local x, y = self:get_draw_pos()
+
+    if mode ~= nil then
+        if mode == "select" then
+            love.graphics.setColor(255, 0, 0)
+        elseif mode == "hover" then
+            love.graphics.setColor(255, 255, 255)
+        end
+
+        love.graphics.setLineWidth(8)
+        love.graphics.circle("line", x, y, self.radius, self.radius * 2)
+    end
 
     love.graphics.setColor(r, g, b)
     love.graphics.circle("fill", x, y, self.radius, self.radius * 2)
@@ -458,10 +469,10 @@ function player:draw_minimap()
     end
 
     love.graphics.setColor(r, g, b)
-    love.graphics.circle("fill", self.px, self.py, self.radius * 8)
+    love.graphics.circle("fill", self.px, self.py, 64)
     love.graphics.setLineWidth(6)
     love.graphics.setColor(r/2, g/2, b/2)
-    love.graphics.circle("line", self.px, self.py, self.radius * 8)
+    love.graphics.circle("line", self.px, self.py, 64)
 end
 
 function player:move_to(x, y)

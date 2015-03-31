@@ -151,7 +151,7 @@ return function(game)
 
             local kb = math.floor((sumbytes / 1024) * 10000 + 0.5) / 10000
             love.graphics.setColor(255, 255, 230)
-            love.graphics.print(sum .. " updates over " .. entries .. " frames (" .. kb .. " kB)", x, y)
+            love.graphics.print(sum .. " updates over " .. entries .. " frames (" .. kb .. " kB)", x, y - 12)
             love.graphics.setLineWidth(1)
             love.graphics.setLineStyle("rough")
 

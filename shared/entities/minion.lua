@@ -3,7 +3,7 @@ local util = require "shared.util"
 
 local minion = {
     is_unit = true,
-    radius = 8,
+    radius = 12,
     health_max = 150,
     use_funnel = true,
     use_outside_snap = true
@@ -254,7 +254,7 @@ end
 function minion:draw_select()
 end
 
-function minion:draw()
+function minion:draw(mode)
     pathedentity.draw(self)
 
     -- love.graphics.setColor(255, 0, 0)
@@ -271,6 +271,18 @@ function minion:draw()
     end
 
     local x, y = self:get_draw_pos()
+
+    if mode ~= nil then
+        if mode == "select" then
+            love.graphics.setColor(255, 0, 0)
+        elseif mode == "hover" then
+            love.graphics.setColor(255, 255, 255)
+        end
+
+        love.graphics.setLineWidth(8)
+        love.graphics.rectangle("line", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+    end
+
     love.graphics.setColor(r, g, b)
     -- love.graphics.circle("fill", x, y, self.radius, self.radius * 2)
     love.graphics.rectangle("fill", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)

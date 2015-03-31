@@ -37,10 +37,12 @@ return function(game)
                 -- print("Got packet " .. tostring(EVENT(data.e)))
 
                 if data.e == EVENT.ENTITY_ADD then
-                    data.e = nil
+                    -- data.e = nil
+                    update_count.bytes = update_count.bytes + #event.data
 
-                    for i, entry in pairs(data) do
+                    for i, entry in ipairs(data) do
                         local type = entity_from_id(entry.t)
+                        update_key[type].count = update_key[type].count + 1
 
                         if not type.__ran_client_init then
                             if type.client_init then
@@ -66,15 +68,12 @@ return function(game)
                         end
                     end
                 elseif data.e == EVENT.ENTITY_UPDATE then
-                    data.e = nil
+                    update_count.bytes = update_count.bytes + #event.data
 
                     for i, entry in ipairs(data) do
                         if self.entities[entry.i] ~= nil then
                             local t = getmetatable(self.entities[entry.i])
-
                             update_key[t].count = update_key[t].count + 1
-                            update_count.bytes = update_count.bytes + #event.data
-                            
                             self.entities[entry.i]:unpack(entry.d, entry.t)
                         end
                     end

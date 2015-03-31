@@ -126,14 +126,17 @@ function love.update(dt)
 
     game.update(dt)
 
-    -- if server.pending_update then
-    --     for i, cl in pairs(server.clients) do
-    --         cl:send(server.pending_update)
-    --     end
-    --
-    --     server.pending_update = nil
-    --     server.pending_update_index = nil
-    -- end
+    if server.pending_update then
+        -- print("sending pending update worth " .. #server.pending_update)
+
+        for i, cl in pairs(server.clients) do
+            -- cl:send(server.pending_update, 1, "reliable")
+            cl:send(server.pending_update)
+        end
+
+        server.pending_update = nil
+        server.pending_update_index = nil
+    end
 end
 
 function add_entity(ent)
@@ -196,45 +199,45 @@ function update_entity(ent, type)
         return
     end
 
-    -- if server.pending_update == nil then
-    --     server.pending_update = {
-    --         e = EVENT.ENTITY_UPDATE
-    --     }
-    --
-    --     server.pending_update_index = {}
-    -- end
-    --
-    -- if server.pending_update_index[ent] ~= nil then
-    --     if server.pending_update_index[ent][type] ~= nil then
-    --         server.pending_update_index[ent][type].d = ent:pack(type)
-    --         return
-    --     end
-    -- end
-    --
-    -- local entry = {
-    --     i = ent.__id,
-    --     t = type,
-    --     d = ent:pack(type)
-    -- }
-    --
-    -- table.insert(server.pending_update, entry)
-    --
-    -- if server.pending_update_index[ent] == nil then
-    --     server.pending_update_index[ent] = {}
-    -- end
-    --
-    -- server.pending_update_index[ent][type] = entry
+    if server.pending_update == nil then
+        server.pending_update = {
+            e = EVENT.ENTITY_UPDATE
+        }
 
-    for i, cl in pairs(server.clients) do
-        cl:send({
-            e = EVENT.ENTITY_UPDATE,
-            {
-                i = ent.__id,
-                t = type,
-                d = ent:pack(type)
-            }
-        })
+        server.pending_update_index = {}
     end
+
+    if server.pending_update_index[ent] ~= nil then
+        if server.pending_update_index[ent][type] ~= nil then
+            server.pending_update_index[ent][type].d = ent:pack(type)
+            return
+        end
+    end
+
+    local entry = {
+        i = ent.__id,
+        t = type,
+        d = ent:pack(type)
+    }
+
+    table.insert(server.pending_update, entry)
+
+    if server.pending_update_index[ent] == nil then
+        server.pending_update_index[ent] = {}
+    end
+
+    server.pending_update_index[ent][type] = entry
+
+    -- for i, cl in pairs(server.clients) do
+    --     cl:send({
+    --         e = EVENT.ENTITY_UPDATE,
+    --         {
+    --             i = ent.__id,
+    --             t = type,
+    --             d = ent:pack(type)
+    --         }
+    --     })
+    -- end
 end
 
 function schedule(when, f)
