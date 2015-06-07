@@ -79,15 +79,18 @@ function game:draw()
     -- end
 
     self.world:draw()
+
     local x, y = self.camera:mousepos()
+    local did_select = false
 
     for id, ent in pairs(self.entities) do
         local mode
 
         if id == self.selection then
             mode = "select"
-        elseif ent.try_select and ent:try_select(x, y) then
+        elseif not did_select and ent.try_select and ent:try_select(x, y) then
             mode = "hover"
+            did_select = true
         end
 
         ent:draw(mode)

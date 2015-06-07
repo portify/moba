@@ -1,19 +1,48 @@
+entities.projectile:register_type("minion-caster-red", function(self)
+    local image = get_resource(love.graphics.newImage, "assets/blot.png")
+    local system = love.graphics.newParticleSystem(image, 0.6 * 50 + 100) -- very bad
+
+    system:setParticleLifetime(0.6, 0.6)
+    system:setEmissionRate(50)
+    system:setSizes(0.05, 0)
+    system:setColors(
+        255, 100, 40, 255,
+        255, 100, 40, 128,
+        255, 100, 40, 64,
+        255, 100, 40, 0)
+
+    return system
+end)
+
+entities.projectile:register_type("minion-caster-blue", function(self)
+    local image = get_resource(love.graphics.newImage, "assets/blot.png")
+    local system = love.graphics.newParticleSystem(image, 0.6 * 50 + 100) -- very bad
+
+    system:setParticleLifetime(0.6, 0.6)
+    system:setEmissionRate(50)
+    system:setSizes(0.05, 0)
+    system:setColors(
+        40, 180, 255, 255,
+        40, 180, 255, 128,
+        40, 180, 255, 64,
+        40, 180, 255, 0)
+
+    return system
+end)
+
 local pathedentity = require "shared.entities.pathedentity"
 local util = require "shared.util"
 
 local minion = {
     is_unit = true,
     radius = 12,
-    health_max = 150,
+    health_max = 250,
     use_funnel = true,
     use_outside_snap = true
 }
 
 minion.__index = minion
 setmetatable(minion, pathedentity)
-
-local MAX_CHASE_DISTANCE = 200 ^ 2
-local MAX_ATTACK_DISTANCE = 50 ^ 2
 
 function minion:new(px, py, type)
     local new = setmetatable({}, self)
@@ -22,9 +51,17 @@ function minion:new(px, py, type)
     new.vx = 1
     new.vy = 0
     new.type = type
-    new.speed = 100
+    new.speed = 75
     new.team = false
     new.health = self.health_max
+    new.range_chase = 300 ^ 2
+
+    if type == "melee" then
+        new.range_attack = 35 ^ 2
+    elseif type == "caster" then
+        new.range_attack = 140 ^ 2
+    end
+
     return new
 end
 
@@ -78,7 +115,7 @@ end
 
 function minion:pack(type)
     if type == PACK_TYPE.INITIAL then
-        return {self.team, pathedentity.pack(self, type)}
+        return {self.type, self.team, pathedentity.pack(self, type)}
     elseif type == PACK_TYPE.MOVE_ANIM then
         return {self.move_duration, self.move_vertices}
     else
@@ -88,8 +125,9 @@ end
 
 function minion:unpack(t, type)
     if type == PACK_TYPE.INITIAL then
-        self.team = t[1]
-        pathedentity.unpack(self, t[2], type)
+        self.type = t[1]
+        self.team = t[2]
+        pathedentity.unpack(self, t[3], type)
     elseif type == PACK_TYPE.MOVE_ANIM then
         self:play_move(t[1], t[2])
     else
@@ -146,7 +184,7 @@ function minion:update(dt)
     if not is_client then
         local target = server:by_id(self.target)
 
-        if target == nil or not target:is_alive() or util.dist2(self.px, self.py, target.px, target.py) > MAX_CHASE_DISTANCE then
+        if target == nil or not target:is_alive() or util.dist2(self.px, self.py, target.px, target.py) > self.range_chase then
             if self.target ~= nil then
                 -- print("lost target")
                 self.target = nil
@@ -170,7 +208,7 @@ function minion:update(dt)
                 then
                     local distance = util.dist2(self.px, self.py, ent.px, ent.py)
 
-                    if distance <= MAX_CHASE_DISTANCE and (target == nil or distance < lowest) then
+                    if distance <= self.range_chase and (target == nil or distance < lowest) then
                         target = ent
                         lowest = distance
                     end
@@ -186,22 +224,47 @@ function minion:update(dt)
         if target then
             local distance = util.dist2(self.px, self.py, target.px, target.py)
 
-            if distance <= MAX_ATTACK_DISTANCE then
+            if distance <= self.range_attack then
                 if self.path ~= nil then
                     self.path = nil
                     update_entity(self)
                 end
 
-                if not self.move_curve then
-                    self:play_move(1, {
-                        0, 0,
-                        self.vx * -12, self.vy * -12,
-                        self.vx *  24, self.vy *  24,
-                        self.vx *   4, self.vy *   4,
-                        0, 0
-                    })
+                if self.type == "melee" then
+                    if not self.move_curve then
+                        local duration = 1 / 1.25
 
-                    delay(0.6, function() target:damage(10) end)
+                        self:play_move(duration, {
+                            0, 0,
+                            self.vx * -12, self.vy * -12,
+                            self.vx *  24, self.vy *  24,
+                            self.vx *   4, self.vy *   4,
+                            0, 0
+                        })
+
+                        delay(duration, function() target:damage(12) end)
+                    end
+                elseif self.type == "caster" then
+                    if self.cast_time == nil or self.cast_time <= 0 then
+                        local p = entities.projectile:new(self.team == 1 and "minion-caster-blue" or "minion-caster-red")
+
+                        p.ignore[self] = true
+                        p.target = target.__id
+                        p.can_hit_tower = true
+                        p.life = -1
+                        p.speed = 120
+                        p.radius = 8
+                        p.damage = 23
+                        p.px = self.px
+                        p.py = self.py
+                        p.team = self.team
+
+                        add_entity(p)
+
+                        self.cast_time = 1 / 0.67
+                    else
+                        self.cast_time = self.cast_time - dt
+                    end
                 end
             else
                 if self.path ~= nil then
@@ -280,16 +343,27 @@ function minion:draw(mode)
         end
 
         love.graphics.setLineWidth(8)
-        love.graphics.rectangle("line", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+        if self.type == "caster" then
+            love.graphics.circle("line", x, y, self.radius, 6)
+        else
+            love.graphics.rectangle("line", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+        end
     end
 
-    love.graphics.setColor(r, g, b)
-    -- love.graphics.circle("fill", x, y, self.radius, self.radius * 2)
-    love.graphics.rectangle("fill", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
-    love.graphics.setLineWidth(2)
-    love.graphics.setColor(r/2, g/2, b/2)
-    -- love.graphics.circle("line", x, y, self.radius, self.radius * 2)
-    love.graphics.rectangle("line", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+    if self.type == "caster" then
+        love.graphics.setColor(r, g, b)
+        love.graphics.circle("fill", x, y, self.radius, 6)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(r/2, g/2, b/2)
+        love.graphics.circle("line", x, y, self.radius, 6)
+    else
+        love.graphics.setColor(r, g, b)
+        love.graphics.rectangle("fill", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(r/2, g/2, b/2)
+        love.graphics.rectangle("line", x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+    end
 
     -- love.graphics.setColor(80, 80, 80)
     -- love.graphics.circle("fill", self.px, self.py, 8)

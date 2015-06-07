@@ -34,7 +34,7 @@ function player:new(name)
     new.speed = 170
     new.team = false
     new.cooldown = {}
-    new.health_max = 300
+    new.health_max = 450
     new.health = new.health_max
     new.mana_max = 300
     new.mana = new.mana_max
@@ -288,7 +288,7 @@ function player:update(dt)
                         0, 0
                     })
 
-                    delay(0.6, function() target:damage(35) end)
+                    delay(0.6, function() target:damage(55) end)
                 end
             else
                 if self.path ~= nil then
@@ -450,8 +450,8 @@ function player:draw_minimap()
     end
 
     if self.path ~= nil then
-        love.graphics.setLineWidth(2)
-        love.graphics.setColor(0, 255, 0)
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(255, 255, 255)
 
         local i = #self.path
 
@@ -512,7 +512,7 @@ function player:use_ability(which, x, y)
         p.life = 3
         p.speed = 500
         p.radius = 8
-        p.damage = 48
+        p.damage = 130
         p.px = self.px + self.vx * 8
         p.py = self.py + self.vy * 8
         p.vx = self.vx

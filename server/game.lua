@@ -1,17 +1,15 @@
 local game = {
-    minion_wave_timer = 2.5
+    minion_wave_timer = 5
 }
 
-function game.spawn_minion_wave_entry()
+function game.spawn_minion_wave_entry(type)
     for name, path in pairs(server.world.paths) do
-        -- print("spawning minions onto path " .. name)
-
-        local a = entities.minion:new(0, 0)
+        local a = entities.minion:new(0, 0, type)
         a.team = 0
         a:begin_a_quest(name)
         add_entity(a)
 
-        local b = entities.minion:new(0, 0)
+        local b = entities.minion:new(0, 0, type)
         b.team = 1
         b:begin_a_quest(name)
         add_entity(b)
@@ -19,8 +17,16 @@ function game.spawn_minion_wave_entry()
 end
 
 function game.spawn_minion_wave()
-    for i=1, 5 do
-        delay(i * 0.5, game.spawn_minion_wave_entry)
+    for i=1, 3 do
+        delay(i * 0.5, function()
+            game.spawn_minion_wave_entry("melee")
+        end)
+    end
+
+    for i=4, 6 do
+        delay(i * 0.5, function()
+            game.spawn_minion_wave_entry("caster")
+        end)
     end
 end
 

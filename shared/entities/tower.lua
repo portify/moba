@@ -27,8 +27,8 @@ end)
 
 local tower = {
     is_unit = true,
-    radius = 32,
-    health_max = 2500,
+    radius = 28,
+    health_max = 2000,
     max_player_dist = 150
 }
 
@@ -137,7 +137,7 @@ function tower:update(dt)
             p.target = self.active_target
             p.unescapeable = true
             p.life = -1
-            p.speed = 100
+            p.speed = 140
             p.radius = 8
             p.damage = 100 * self.damage_scale
             p.px = self.px
@@ -146,7 +146,7 @@ function tower:update(dt)
 
             add_entity(p)
 
-            self.timer = 1.5
+            self.timer = 1 / 0.83
             self.damage_scale = math.min(3.5, self.damage_scale + 0.25)
         end
     else
